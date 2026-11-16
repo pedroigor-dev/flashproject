@@ -118,7 +118,7 @@ React, TypeScript, Node.js e NestJS aparecem nas [vagas da Flash consultadas dur
 
 ## O que a IA sabe
 
-O backend fornece uma base de informações públicas sobre a Flash. O modelo pode usar o contexto da conversa, mas não pesquisa na web em tempo real, consulta saldos ou executa operações na conta de ninguém. Os links exibidos são referências dessa base, não uma verificação individual de cada frase gerada.
+O backend fornece uma base de informações públicas sobre a Flash. O modelo pode usar o contexto da conversa, mas não pesquisa na web em tempo real, consulta saldos ou executa operações na conta de ninguém. Os links exibidos correspondem às fontes que o modelo indicou na resposta, validadas contra o catálogo do backend. Isso não equivale a uma verificação individual de cada frase gerada.
 
 Para regras de uso e informações atualizadas, consulte o [site da Flash](https://flashapp.com.br/), a página de [benefícios](https://flashapp.com.br/gestao-de-beneficios) e a [central de ajuda](https://faq.flashapp.com.br/).
 
@@ -131,3 +131,9 @@ Para regras de uso e informações atualizadas, consulte o [site da Flash](https
 [Pedro Igor](https://github.com/pedroigor-dev) · [Conheça o backend](https://github.com/pedroigor-dev/flashbackend)
 
 </div>
+
+## Conversas e referências
+
+O chat renderiza parágrafos, listas, destaques e código com `react-markdown`, sem executar HTML nem carregar imagens produzidas pelo modelo. Os cartões de fontes aceitam apenas os domínios oficiais cadastrados, incluindo as vagas da Flash na Lever e o Canal de Ética.
+
+A base do backend reúne 11 temas, de história e cultura a ética, arquitetura, práticas de engenharia, produtos e IA, consultados em 16/11/2026. Ela permite aprofundar assuntos e continuar a conversa com contexto, mas não faz pesquisa ao vivo nem garante respostas sem erros.
