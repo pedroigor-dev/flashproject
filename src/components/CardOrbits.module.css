@@ -1,0 +1,51 @@
+/* Kept separate from globals.css so preloader styling can evolve independently. */
+.scene :global(.card-scene) {
+  --orbit-one-size: 560px;
+  --orbit-two-size: 660px;
+}
+.scene :global(.orbit-one), .scene :global(.message-orbit-one) {
+  width: var(--orbit-one-size);
+  height: calc(var(--orbit-one-size) * .78);
+  transform: rotate(-28deg);
+}
+.scene :global(.orbit-two), .scene :global(.message-orbit-two) {
+  width: var(--orbit-two-size);
+  height: calc(var(--orbit-two-size) * .77);
+  transform: rotate(38deg);
+}
+.scene :global(.message-orbit) { position: absolute; pointer-events: none; z-index: 3; }
+.scene :global(.message-orbit .floating-label) {
+  inset: 0 auto auto 0;
+  width: max-content;
+  white-space: nowrap;
+  transform: none;
+  offset-path: ellipse(50% 50% at 50% 50%);
+  offset-anchor: center;
+  animation: revolution 65s linear infinite;
+}
+.scene :global(.message-orbit-one .floating-label) { offset-rotate: 28deg; animation-delay: -53s; }
+.scene :global(.message-orbit-two .floating-label) {
+  offset-rotate: -38deg;
+  animation-duration: 80s;
+  animation-delay: -28s;
+  animation-direction: reverse;
+}
+.scene :global(.animations-paused .floating-label),
+.scene :global(.animations-paused .flash-card),
+.scene :global(.animations-paused .card-shadow) { animation-play-state: paused; }
+.scene :global(.replay) { z-index: 4; min-height: 36px; padding: 8px 12px; background: #faf8f5db; border-radius: 20px; }
+@keyframes revolution { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+@media (max-width: 1100px) {
+  .scene :global(.card-scene) { --orbit-one-size: 450px; --orbit-two-size: 520px; }
+}
+@media (max-width: 760px) {
+  .scene :global(.card-scene) { --orbit-one-size: 250px; --orbit-two-size: 270px; }
+  .scene :global(.message-orbit .floating-label) { font-size: 7px; padding: 8px; gap: 5px; }
+  .scene :global(.message-orbit .floating-label svg) { width: 12px; height: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scene :global(.message-orbit .floating-label) { animation: none; }
+  .scene :global(.message-orbit-one .floating-label) { offset-distance: 82%; }
+  .scene :global(.message-orbit-two .floating-label) { offset-distance: 65%; }
+  .scene :global(.replay) { display: none; }
+}
