@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-label="Um mundo mais Flash.">
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#fff8fb"/><stop offset="1" stop-color="#fbd6e5"/></linearGradient></defs>
+<rect width="1280" height="360" rx="24" fill="url(#bg)"/>
+<g fill="none" stroke="#ef2d78" opacity=".18"><ellipse cx="1090" cy="180" rx="270" ry="130" transform="rotate(-30 1090 180)"/><ellipse cx="1090" cy="180" rx="200" ry="250" transform="rotate(-30 1090 180)"/></g>
+<text x="64" y="65" font-family="Arial,sans-serif" font-size="13" letter-spacing="4" fill="#9c4e6b">EXPERIENCE / FRONTEND</text>
+<text x="60" y="157" font-family="Arial,sans-serif" font-size="59" font-weight="700" letter-spacing="-3" fill="#30252d">Um mundo mais Flash.</text>
+<text x="64" y="207" font-family="Arial,sans-serif" font-size="22" fill="#946a7d">Cartão em movimento. Uma conversa para descobrir.</text>
+<rect x="64" y="269" width="42" height="4" rx="2" fill="#ef2d78"/><text x="120" y="278" font-family="Arial,sans-serif" font-size="13" letter-spacing="2" fill="#80425c">FLASHINHO / PROJETO INDEPENDENTE</text>
+<g transform="translate(1115 166)" stroke="#ef2d78" stroke-width="5"><path d="M-45 0H45M0-45V45M-32-32L32 32M-32 32L32-32"/></g></svg>

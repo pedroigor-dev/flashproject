@@ -1,54 +1,133 @@
+<div align="center">
+
+![Flash Experience: um mundo mais Flash](docs/images/cover.svg)
+
 # Flash Experience
 
-Frontend conceito independente para apresentação, construído com Next.js 16 (App Router), React 19 e TypeScript. Não é um produto oficial da Flash.
+Uma landing animada e um pequeno flamingo para conversar sobre a Flash.
 
-## Rodar
+![Next.js 16](https://img.shields.io/badge/Next.js-16-30252d?style=flat-square)
+![React 19](https://img.shields.io/badge/React-19-ef2d78?style=flat-square)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-f7b2cc?style=flat-square)
 
-Requer Node.js 20.9 ou superior.
+[As telas](#as-telas) · [Rodar localmente](#rodar-localmente) · [Como funciona](#como-funciona) · [Backend](https://github.com/pedroigor-dev/flashbackend)
 
-```powershell
-cd C:\source\flashproject
-npm install
+</div>
+
+## A ideia
+
+O projeto começa com um cartão rosa girando na tela e termina em uma conversa. Entre os dois, o Flashinho, um flamingo em pixel art, apresenta o universo de benefícios da Flash.
+
+A proposta foi explorar animação, identidade visual e integração com IA numa experiência pequena, que dá para abrir, entender e testar. É um projeto independente de apresentação, sem vínculo oficial com a Flash.
+
+## As telas
+
+### O cartão é o centro da experiência
+
+![Hero com cartão rosa em 3D e mensagens em órbita](docs/images/hero.png)
+
+O cartão foi construído em CSS 3D, com frente e verso. O giro desacelera até revelar a frente, enquanto pequenas mensagens seguem as órbitas ao redor. O botão de pausa permite interromper o movimento.
+
+A entrada tem nuvens em WebGL e o Flashinho em pixel art. Ao abrir o chat, o nome Flash cresce e revela a página através das letras.
+
+### Uma conversa com o Flashinho
+
+![Conversa real com o Flashinho usando Groq](docs/images/chat.png)
+
+O chat oferece perguntas iniciais, histórico no navegador, cópia de respostas e exclusão de conversas. As respostas vêm do backend, que envia o contexto ao provedor de IA configurado. Se a chamada falhar, a interface mostra o erro e permite tentar novamente.
+
+As capturas mostram a aplicação local. O repositório contém o código; ainda não há uma demonstração hospedada.
+
+## Rodar localmente
+
+Use **Node.js 22 ou superior** para executar frontend e backend com a mesma versão.
+
+```bash
+git clone https://github.com/pedroigor-dev/flashproject.git
+cd flashproject
+npm ci
 npm run dev -- --port 3200
 ```
 
-Abra http://127.0.0.1:3200. Para produção: `npm run build` e `npm run start -- --port 3200`. Verificação de tipos: `npm run typecheck`.
+Abra [localhost:3200](http://localhost:3200). A landing funciona sem o backend; para receber respostas no chat, siga a configuração do [Flashinho API](https://github.com/pedroigor-dev/flashbackend#rodar-localmente) e inicie-o na porta `4000`.
 
-## Experiência
+O servidor Next.js usa `http://127.0.0.1:4000` como endereço padrão da API. Para mudar, crie um `.env.local` na raiz:
 
-- `/`: pré-loading inspirado na entrada do projeto Cérebro, hero editorial e cartão CSS 3D com frente e verso. O giro desacelera e termina com a frente visível. Mensagens orbitam o cartão, com botão para pausar a animação.
-- `/chat`: interface de conversa, sugestões, histórico local, exclusão de conversas, copiar resposta e menu móvel.
-- Flashinho: flamingo SVG com geometria pixel art, animações de olhos, corpo e pé. Sem assets externos necessários.
-- Fonte Manrope servida localmente. Layout responsivo, navegação por teclado e preferência de movimento reduzido.
+```dotenv
+FLASH_BACKEND_URL=http://127.0.0.1:4000
+```
 
-## Estado da IA
+Essa variável pertence ao servidor. As chaves da Groq e da Hugging Face ficam somente no `.env` do backend.
 
-O chat usa respostas reais via backend NestJS em `C:\source\flashbackend`, com Groq e o modelo `openai/gpt-oss-120b`. A base de referência contém informações públicas da Flash; não há consulta a contas de colaboradores nem pesquisa web em tempo real. O histórico fica no localStorage deste navegador, e até 20 mensagens são encaminhadas como contexto ao provedor configurado.
+| Comando | O que faz |
+| --- | --- |
+| `npm run dev -- --port 3200` | Inicia o ambiente de desenvolvimento |
+| `npm run typecheck` | Verifica os tipos com TypeScript |
+| `npm run build` | Gera o build de produção |
+| `npm run start -- --port 3200` | Executa o build gerado |
 
-As chaves ficam exclusivamente no `.env` do backend, ignorado pelo Git. A interface informa o envio das mensagens ao provedor de IA e mostra erros reais, sem respostas demonstrativas como fallback.
+## Como funciona
 
-## Pesquisa de stack — 16/11/2026
+```mermaid
+flowchart LR
+    A[Chat no navegador] --> B[Rotas do Next.js]
+    B --> C[API NestJS]
+    C --> D[Groq ou Hugging Face]
+    D --> C
+    C --> B
+    B --> A
+    classDef pink fill:#fce4ee,stroke:#ef2d78,color:#30252d;
+    class A,B,C,D pink;
+```
 
-Fontes primárias, vagas publicadas pela própria Flash:
+O navegador chama `/api/chat` no próprio Next.js. Essa rota encaminha a solicitação ao NestJS, que valida as mensagens, acrescenta a base de referência e chama o modelo. A resposta volta com o texto e os links da base utilizada.
 
-- https://jobs.lever.co/flashapp/8ec8070d-d843-4452-a2e7-3b1290ff9f0d — menciona explicitamente Node.js, TypeScript, ReactJS, NestJS, MongoDB e bancos relacionais em “Domínio da nossa Stack”. Cloud e CI/CD aparecem como familiaridade desejável, sem confirmar fornecedor exclusivo.
-- https://jobs.lever.co/flashapp/ba441087-16fa-453a-9e17-48426474f5a6 — NodeJS, TypeScript, ReactJS, arquitetura de serviços, Clean Architecture, Event Driven Architecture e DDD.
-- https://jobs.lever.co/flashapp/bb973d4d-b066-4d28-a04d-e97685ab7896 — cita NestJS, Kafka, MongoDB e Grafana como diferenciais para uma vaga específica; não comprova adoção universal em todas as equipes.
+O histórico fica no `localStorage`. Até 20 mensagens seguem como contexto para a IA. Não há login, banco de conversas ou acesso à conta Flash do visitante.
 
-Next.js é uma escolha solicitada para este projeto, não uma tecnologia confirmada da Flash pelas fontes consultadas. CSS 3D, SVG e Lucide são escolhas visuais deste frontend.
+## Onde encontrar cada parte
 
-## Fontes de produto
+```text
+src/
+├── app/
+│   ├── page.tsx                 # Landing e cartão
+│   ├── globals.css              # Estilos da experiência
+│   ├── chat/                    # Interface e entrada do chat
+│   └── api/                     # Proxy de chat e health check
+├── components/
+│   ├── Clouds.tsx               # Nuvens em WebGL
+│   ├── Flashinho.tsx            # Mascote em SVG
+│   ├── ChatEntrance.tsx         # Transição com as letras Flash
+│   └── *.module.css            # Animações e estilos isolados
+└── lib/knowledge.ts             # Sugestões e conteúdo da versão inicial
+```
 
-- https://flashapp.com.br/
-- https://flashapp.com.br/gestao-de-beneficios
-- https://faq.flashapp.com.br/kb/guide/pt-BR/onde-aceita-e-como-usar-o-meu-cartao-flash-e5yQA7tfeC/Steps/4198095
+A função de respostas demonstrativas da versão inicial permanece em `knowledge.ts`, mas o chat atual usa a API. Ela não serve como fallback quando o provedor falha.
 
-O cartão é uma interpretação visual criada em CSS. O mascote e a experiência são criações deste projeto conceito. Regras dos benefícios devem ser verificadas nas fontes oficiais.
+## Escolhas do projeto
 
-## Backend de IA integrado
+| Tecnologia | Uso |
+| --- | --- |
+| Next.js 16 / App Router | Páginas, navegação e rotas de servidor |
+| React 19 e TypeScript | Componentes, estado e contratos |
+| CSS 3D e animações CSS | Cartão, órbitas e transições |
+| WebGL | Nuvens do pré-loading |
+| SVG | Mascote e elementos gráficos |
+| Manrope e Lucide | Tipografia local e ícones |
 
-1. Em `C:\source\flashbackend`, execute `npm run dev` (porta 4000).
-2. Em `C:\source\flashproject`, execute `npm run dev -- --port 3200`.
-3. Abra http://localhost:3200/chat. A porta 3000 está sendo usada por outro projeto local.
+React, TypeScript, Node.js e NestJS aparecem nas [vagas da Flash consultadas durante o projeto](https://jobs.lever.co/flashapp/8ec8070d-d843-4452-a2e7-3b1290ff9f0d). Next.js foi uma escolha desta implementação, não uma afirmação sobre a stack interna da empresa.
 
-`FLASH_BACKEND_URL` (variável apenas do servidor Next.js) pode alterar o endereço padrão `http://127.0.0.1:4000`. O backend permite selecionar Groq ou Hugging Face por configuração; a opção ativa é Groq. Consulte o README do backend para variáveis e limites.
+## O que a IA sabe
+
+O backend fornece uma base de informações públicas sobre a Flash. O modelo pode usar o contexto da conversa, mas não pesquisa na web em tempo real, consulta saldos ou executa operações na conta de ninguém. Os links exibidos são referências dessa base, não uma verificação individual de cada frase gerada.
+
+Para regras de uso e informações atualizadas, consulte o [site da Flash](https://flashapp.com.br/), a página de [benefícios](https://flashapp.com.br/gestao-de-beneficios) e a [central de ajuda](https://faq.flashapp.com.br/).
+
+---
+
+<div align="center">
+
+**Um pequeno flamingo. Um universo de perguntas.**
+
+[Pedro Igor](https://github.com/pedroigor-dev) · [Conheça o backend](https://github.com/pedroigor-dev/flashbackend)
+
+</div>
