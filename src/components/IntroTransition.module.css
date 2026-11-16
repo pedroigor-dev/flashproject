@@ -1,11 +1,15 @@
 .overlay {
   opacity: 1;
-  transition: opacity 900ms cubic-bezier(.22, 1, .36, 1);
+  transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .overlay :global(.intro-center) {
-  transition: opacity 600ms ease, transform 900ms cubic-bezier(.22, 1, .36, 1), filter 700ms ease;
+  transition:
+    opacity 600ms ease,
+    transform 900ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 700ms ease;
 }
-.overlay :global(.intro-brand), .overlay :global(.intro-foot) {
+.overlay :global(.intro-brand),
+.overlay :global(.intro-foot) {
   transition: opacity 500ms ease;
 }
 .overlay.leaving {
@@ -14,19 +18,36 @@
 }
 .leaving :global(.intro-center) {
   opacity: 0;
-  transform: translateY(-18px) scale(.98);
+  transform: translateY(-18px) scale(0.98);
   filter: blur(5px);
 }
-.leaving :global(.intro-brand), .leaving :global(.intro-foot) { opacity: 0; }
+.leaving :global(.intro-brand),
+.leaving :global(.intro-foot) {
+  opacity: 0;
+}
 .content {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 850ms ease, transform 1000ms cubic-bezier(.22, 1, .36, 1);
+  transition:
+    opacity 850ms ease,
+    transform 1000ms cubic-bezier(0.22, 1, 0.36, 1);
   outline: none;
 }
-.waiting { opacity: 0; transform: translateY(12px); }
+.waiting {
+  opacity: 0;
+  transform: translateY(12px);
+}
 @media (prefers-reduced-motion: reduce) {
-  .overlay, .overlay :global(.intro-center), .overlay :global(.intro-brand),
-  .overlay :global(.intro-foot), .content { transition: none; }
-  .waiting, .leaving :global(.intro-center) { transform: none; filter: none; }
+  .overlay,
+  .overlay :global(.intro-center),
+  .overlay :global(.intro-brand),
+  .overlay :global(.intro-foot),
+  .content {
+    transition: none;
+  }
+  .waiting,
+  .leaving :global(.intro-center) {
+    transform: none;
+    filter: none;
+  }
 }

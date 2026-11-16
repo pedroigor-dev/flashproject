@@ -59,12 +59,12 @@ FLASH_BACKEND_URL=http://127.0.0.1:4000
 
 Essa variável pertence ao servidor. As chaves da Groq e da Hugging Face ficam somente no `.env` do backend.
 
-| Comando | O que faz |
-| --- | --- |
-| `npm run dev -- --port 3200` | Inicia o ambiente de desenvolvimento |
-| `npm run typecheck` | Verifica os tipos com TypeScript |
-| `npm run build` | Gera o build de produção |
-| `npm run start -- --port 3200` | Executa o build gerado |
+| Comando                        | O que faz                            |
+| ------------------------------ | ------------------------------------ |
+| `npm run dev -- --port 3200`   | Inicia o ambiente de desenvolvimento |
+| `npm run typecheck`            | Verifica os tipos com TypeScript     |
+| `npm run build`                | Gera o build de produção             |
+| `npm run start -- --port 3200` | Executa o build gerado               |
 
 ## Como funciona
 
@@ -105,14 +105,14 @@ A função de respostas demonstrativas da versão inicial permanece em `knowledg
 
 ## Escolhas do projeto
 
-| Tecnologia | Uso |
-| --- | --- |
+| Tecnologia              | Uso                                    |
+| ----------------------- | -------------------------------------- |
 | Next.js 16 / App Router | Páginas, navegação e rotas de servidor |
-| React 19 e TypeScript | Componentes, estado e contratos |
-| CSS 3D e animações CSS | Cartão, órbitas e transições |
-| WebGL | Nuvens do pré-loading |
-| SVG | Mascote e elementos gráficos |
-| Manrope e Lucide | Tipografia local e ícones |
+| React 19 e TypeScript   | Componentes, estado e contratos        |
+| CSS 3D e animações CSS  | Cartão, órbitas e transições           |
+| WebGL                   | Nuvens do pré-loading                  |
+| SVG                     | Mascote e elementos gráficos           |
+| Manrope e Lucide        | Tipografia local e ícones              |
 
 React, TypeScript, Node.js e NestJS aparecem nas [vagas da Flash consultadas durante o projeto](https://jobs.lever.co/flashapp/8ec8070d-d843-4452-a2e7-3b1290ff9f0d). Next.js foi uma escolha desta implementação, não uma afirmação sobre a stack interna da empresa.
 
@@ -137,3 +137,14 @@ Para regras de uso e informações atualizadas, consulte o [site da Flash](https
 O chat renderiza parágrafos, listas, destaques e código com `react-markdown`, sem executar HTML nem carregar imagens produzidas pelo modelo. Os cartões de fontes aceitam apenas os domínios oficiais cadastrados, incluindo as vagas da Flash na Lever e o Canal de Ética.
 
 A base do backend reúne 11 temas, de história e cultura a ética, arquitetura, práticas de engenharia, produtos e IA, consultados em 16/11/2026. Ela permite aprofundar assuntos e continuar a conversa com contexto, mas não faz pesquisa ao vivo nem garante respostas sem erros.
+
+## Formatação do código
+
+O projeto usa Prettier e EditorConfig para manter indentação, quebras de linha e espaçamento consistentes.
+
+```bash
+npm run format
+npm run format:check
+```
+
+O primeiro comando formata os arquivos; o segundo verifica o padrão sem alterá-los. Arquivos gerados, imagens e variáveis de ambiente ficam fora da formatação.

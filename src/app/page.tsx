@@ -9,25 +9,269 @@ import orbitStyles from '@/components/CardOrbits.module.css';
 import entryStyles from '@/components/IntroTransition.module.css';
 
 export default function Home() {
- const [intro, setIntro] = useState(true); const [leaving, setLeaving] = useState(false); const landing = useRef<HTMLDivElement>(null); const [paused, setPaused] = useState(false); const [about, setAbout] = useState(false); const skip = useRef<HTMLButtonElement>(null); const close = useRef<HTMLButtonElement>(null);
- useEffect(() => { skip.current?.focus(); const t = setTimeout(() => setLeaving(true), 5000); return () => clearTimeout(t); }, []);
- useEffect(() => { if (about) close.current?.focus(); }, [about]);
- useEffect(() => {
-   if (!leaving) return;
-   const duration = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 900;
-   const timer = setTimeout(() => setIntro(false), duration);
-   return () => clearTimeout(timer);
- }, [leaving]);
- useEffect(() => { if (!intro) landing.current?.focus({ preventScroll: true }); }, [intro]);
- function finish() { setLeaving(true); }
- return <main className={`landing ${orbitStyles.scene}`}>
- {intro && <div className={`intro ${entryStyles.overlay} ${leaving ? entryStyles.leaving : ''}`} role="dialog" aria-modal="true" aria-label="Bem-vindo à Flash" onKeyDown={e => { if(e.key === 'Escape') finish(); if(e.key === 'Tab') {e.preventDefault(); skip.current?.focus();} }}><Clouds/><div className="intro-brand">flash<span>UM NOVO JEITO DE CONECTAR</span></div><div className="intro-orbit"/><div className="intro-center"><Flashinho/><span className="eyebrow">PRAZER, SEU NOVO PARCEIRO</span><h1>Oi, eu sou o Flashinho<span>!</span></h1><p>Estamos preparando tudo para você.</p><div className="loading-track"><i/></div><button ref={skip} onClick={finish}>Entrar agora <ArrowUpRight size={15}/></button></div><span className="intro-foot">MENOS COMPLICAÇÃO. MAIS POSSIBILIDADES.</span></div>}
- <div ref={landing} tabIndex={-1} inert={intro} className={`landing-content ${entryStyles.content} ${intro && !leaving ? entryStyles.waiting : ''}`}>
- <header className="header"><Brand/><nav aria-label="Navegação principal"><button onClick={() => setAbout(true)}>Conheça a Flash <ArrowUpRight size={13}/></button><Link href="/chat">Conheça o Flashinho <span className="new-pill">NOVO</span></Link></nav><Link href="/chat" className="header-cta">Acessar experiência <ArrowUpRight size={15}/></Link></header>
- <section className="hero"><div className="hero-copy"><div className="eyebrow"><span className="status-dot"/> BENEFÍCIOS. CONEXÕES. POSSIBILIDADES.</div><h1>O seu mundo.<br/>Com mais<br/><span>Flash.</span><i className="heading-star">✳</i></h1><p>Mais liberdade para viver.<br/>Mais inteligência para simplificar.</p><div className="hero-actions"><Link className="primary-button" href="/chat">Conheça o Flashinho <ArrowUpRight size={19}/></Link><button className="text-button" onClick={() => setAbout(true)}>Explore a Flash <ArrowRight size={17}/></button></div><div className="hero-note"><span className="mini-pet"><Flashinho/></span><span>Um pequeno flamingo.<br/><strong>Converse com o Flashinho.</strong></span></div></div>
- <div className={`card-scene ${paused || (intro && !leaving) ? 'animations-paused' : ''}`}><div className="scene-grid"/><div className="orbit orbit-one"/><div className="orbit orbit-two"/><span className="scene-spark spark-one">✳</span><span className="scene-spark spark-two">+</span><div className="message-orbit message-orbit-one"><div className="floating-label label-top"><span/> Seu dia a dia, mais leve.</div></div><div className="card-perspective"><div className={`flash-card ${leaving ? 'spin-card' : ''}`}><div className="card-face card-front"><div className="card-logo">flash<span>✳</span></div><div className="card-chip"><i/><i/><i/><i/><i/><i/></div><div className="contactless">)))</div><div className="card-word">possibilidades<span>em suas mãos.</span></div><div className="card-bottom"><span>SEU MUNDO, DO SEU JEITO</span><b>VISA</b></div><div className="card-shine"/></div><div className="card-face card-back"><span className="magstripe"/><span className="back-logo">flash ✳</span><span className="back-caption">Uma nova forma de viver o trabalho.</span><div className="back-lines"/></div></div></div><div className="card-shadow"/><div className="message-orbit message-orbit-two"><div className="floating-label label-bottom">Seus benefícios em um só cartão.</div></div><button className="replay" onClick={() => setPaused(value => !value)} aria-pressed={paused}>{paused ? <Play size={14}/> : <Pause size={14}/>} {paused ? 'Retomar animação' : 'Pausar animação'}</button><span className="scene-index">01 / UM MUNDO MAIS FLASH</span></div></section>
- <footer className="landing-footer"><span>FEITO PARA PESSOAS. <b>PENSADO PARA POSSIBILIDADES.</b></span><div><span className="footer-dot"/> Explore. Pergunte. Descubra.</div><span className="concept">Projeto conceito independente</span></footer>
- </div>
- {about && <div className="modal-overlay" onClick={() => setAbout(false)}><section className="about-modal" role="dialog" aria-modal="true" aria-labelledby="about-title" onClick={e => e.stopPropagation()} onKeyDown={e => { if(e.key === 'Escape') setAbout(false); if(e.key === 'Tab') { const els=e.currentTarget.querySelectorAll<HTMLElement>('button,a'); const first=els[0],last=els[els.length-1]; if(e.shiftKey && document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey && document.activeElement===last){e.preventDefault();first.focus();} } }}><button ref={close} className="modal-close" onClick={() => setAbout(false)} aria-label="Fechar"><X/></button><span className="eyebrow">O UNIVERSO FLASH</span><h2 id="about-title">O trabalho pode<br/>ser mais <em>leve.</em></h2><p>A Flash reúne soluções para benefícios, pessoas e despesas. Mais simplicidade para empresas e colaboradores.</p><div className="about-features"><div><CreditCard/><strong>Benefícios</strong><span>Diferentes categorias em um cartão.</span></div><div><Heart/><strong>Pessoas</strong><span>Tecnologia para a jornada de trabalho.</span></div><div><Layers/><strong>Despesas</strong><span>Gestão das despesas corporativas.</span></div></div><Link className="primary-button" href="/chat">Descubra com o Flashinho <ArrowUpRight size={18}/></Link><a className="official-source" href="https://flashapp.com.br/" target="_blank" rel="noreferrer">Visitar o site oficial da Flash ↗</a></section></div>}
- </main>;
+  const [intro, setIntro] = useState(true);
+  const [leaving, setLeaving] = useState(false);
+  const landing = useRef<HTMLDivElement>(null);
+  const [paused, setPaused] = useState(false);
+  const [about, setAbout] = useState(false);
+  const skip = useRef<HTMLButtonElement>(null);
+  const close = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    skip.current?.focus();
+    const t = setTimeout(() => setLeaving(true), 5000);
+    return () => clearTimeout(t);
+  }, []);
+  useEffect(() => {
+    if (about) close.current?.focus();
+  }, [about]);
+  useEffect(() => {
+    if (!leaving) return;
+    const duration = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 900;
+    const timer = setTimeout(() => setIntro(false), duration);
+    return () => clearTimeout(timer);
+  }, [leaving]);
+  useEffect(() => {
+    if (!intro) landing.current?.focus({ preventScroll: true });
+  }, [intro]);
+  function finish() {
+    setLeaving(true);
+  }
+  return (
+    <main className={`landing ${orbitStyles.scene}`}>
+      {intro && (
+        <div
+          className={`intro ${entryStyles.overlay} ${leaving ? entryStyles.leaving : ''}`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Bem-vindo à Flash"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') finish();
+            if (e.key === 'Tab') {
+              e.preventDefault();
+              skip.current?.focus();
+            }
+          }}
+        >
+          <Clouds />
+          <div className="intro-brand">
+            flash<span>UM NOVO JEITO DE CONECTAR</span>
+          </div>
+          <div className="intro-orbit" />
+          <div className="intro-center">
+            <Flashinho />
+            <span className="eyebrow">PRAZER, SEU NOVO PARCEIRO</span>
+            <h1>
+              Oi, eu sou o Flashinho<span>!</span>
+            </h1>
+            <p>Estamos preparando tudo para você.</p>
+            <div className="loading-track">
+              <i />
+            </div>
+            <button ref={skip} onClick={finish}>
+              Entrar agora <ArrowUpRight size={15} />
+            </button>
+          </div>
+          <span className="intro-foot">MENOS COMPLICAÇÃO. MAIS POSSIBILIDADES.</span>
+        </div>
+      )}
+      <div
+        ref={landing}
+        tabIndex={-1}
+        inert={intro}
+        className={`landing-content ${entryStyles.content} ${intro && !leaving ? entryStyles.waiting : ''}`}
+      >
+        <header className="header">
+          <Brand />
+          <nav aria-label="Navegação principal">
+            <button onClick={() => setAbout(true)}>
+              Conheça a Flash <ArrowUpRight size={13} />
+            </button>
+            <Link href="/chat">
+              Conheça o Flashinho <span className="new-pill">NOVO</span>
+            </Link>
+          </nav>
+          <Link href="/chat" className="header-cta">
+            Acessar experiência <ArrowUpRight size={15} />
+          </Link>
+        </header>
+        <section className="hero">
+          <div className="hero-copy">
+            <div className="eyebrow">
+              <span className="status-dot" /> BENEFÍCIOS. CONEXÕES. POSSIBILIDADES.
+            </div>
+            <h1>
+              O seu mundo.
+              <br />
+              Com mais
+              <br />
+              <span>Flash.</span>
+              <i className="heading-star">✳</i>
+            </h1>
+            <p>
+              Mais liberdade para viver.
+              <br />
+              Mais inteligência para simplificar.
+            </p>
+            <div className="hero-actions">
+              <Link className="primary-button" href="/chat">
+                Conheça o Flashinho <ArrowUpRight size={19} />
+              </Link>
+              <button className="text-button" onClick={() => setAbout(true)}>
+                Explore a Flash <ArrowRight size={17} />
+              </button>
+            </div>
+            <div className="hero-note">
+              <span className="mini-pet">
+                <Flashinho />
+              </span>
+              <span>
+                Um pequeno flamingo.
+                <br />
+                <strong>Converse com o Flashinho.</strong>
+              </span>
+            </div>
+          </div>
+          <div className={`card-scene ${paused || (intro && !leaving) ? 'animations-paused' : ''}`}>
+            <div className="scene-grid" />
+            <div className="orbit orbit-one" />
+            <div className="orbit orbit-two" />
+            <span className="scene-spark spark-one">✳</span>
+            <span className="scene-spark spark-two">+</span>
+            <div className="message-orbit message-orbit-one">
+              <div className="floating-label label-top">
+                <span /> Seu dia a dia, mais leve.
+              </div>
+            </div>
+            <div className="card-perspective">
+              <div className={`flash-card ${leaving ? 'spin-card' : ''}`}>
+                <div className="card-face card-front">
+                  <div className="card-logo">
+                    flash<span>✳</span>
+                  </div>
+                  <div className="card-chip">
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                  </div>
+                  <div className="contactless">)))</div>
+                  <div className="card-word">
+                    possibilidades<span>em suas mãos.</span>
+                  </div>
+                  <div className="card-bottom">
+                    <span>SEU MUNDO, DO SEU JEITO</span>
+                    <b>VISA</b>
+                  </div>
+                  <div className="card-shine" />
+                </div>
+                <div className="card-face card-back">
+                  <span className="magstripe" />
+                  <span className="back-logo">flash ✳</span>
+                  <span className="back-caption">Uma nova forma de viver o trabalho.</span>
+                  <div className="back-lines" />
+                </div>
+              </div>
+            </div>
+            <div className="card-shadow" />
+            <div className="message-orbit message-orbit-two">
+              <div className="floating-label label-bottom">Seus benefícios em um só cartão.</div>
+            </div>
+            <button
+              className="replay"
+              onClick={() => setPaused((value) => !value)}
+              aria-pressed={paused}
+            >
+              {paused ? <Play size={14} /> : <Pause size={14} />}{' '}
+              {paused ? 'Retomar animação' : 'Pausar animação'}
+            </button>
+            <span className="scene-index">01 / UM MUNDO MAIS FLASH</span>
+          </div>
+        </section>
+        <footer className="landing-footer">
+          <span>
+            FEITO PARA PESSOAS. <b>PENSADO PARA POSSIBILIDADES.</b>
+          </span>
+          <div>
+            <span className="footer-dot" /> Explore. Pergunte. Descubra.
+          </div>
+          <span className="concept">Projeto conceito independente</span>
+        </footer>
+      </div>
+      {about && (
+        <div className="modal-overlay" onClick={() => setAbout(false)}>
+          <section
+            className="about-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="about-title"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setAbout(false);
+              if (e.key === 'Tab') {
+                const els = e.currentTarget.querySelectorAll<HTMLElement>('button,a');
+                const first = els[0],
+                  last = els[els.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                  e.preventDefault();
+                  last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                  e.preventDefault();
+                  first.focus();
+                }
+              }
+            }}
+          >
+            <button
+              ref={close}
+              className="modal-close"
+              onClick={() => setAbout(false)}
+              aria-label="Fechar"
+            >
+              <X />
+            </button>
+            <span className="eyebrow">O UNIVERSO FLASH</span>
+            <h2 id="about-title">
+              O trabalho pode
+              <br />
+              ser mais <em>leve.</em>
+            </h2>
+            <p>
+              A Flash reúne soluções para benefícios, pessoas e despesas. Mais simplicidade para
+              empresas e colaboradores.
+            </p>
+            <div className="about-features">
+              <div>
+                <CreditCard />
+                <strong>Benefícios</strong>
+                <span>Diferentes categorias em um cartão.</span>
+              </div>
+              <div>
+                <Heart />
+                <strong>Pessoas</strong>
+                <span>Tecnologia para a jornada de trabalho.</span>
+              </div>
+              <div>
+                <Layers />
+                <strong>Despesas</strong>
+                <span>Gestão das despesas corporativas.</span>
+              </div>
+            </div>
+            <Link className="primary-button" href="/chat">
+              Descubra com o Flashinho <ArrowUpRight size={18} />
+            </Link>
+            <a
+              className="official-source"
+              href="https://flashapp.com.br/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Visitar o site oficial da Flash ↗
+            </a>
+          </section>
+        </div>
+      )}
+    </main>
+  );
 }
