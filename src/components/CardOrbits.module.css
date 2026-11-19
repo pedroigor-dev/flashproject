@@ -1,4 +1,3 @@
-/* Kept separate from globals.css so preloader styling can evolve independently. */
 .scene :global(.card-scene) {
   --orbit-one-size: 560px;
   --orbit-two-size: 660px;

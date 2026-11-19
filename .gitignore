@@ -6,3 +6,6 @@ dist/
 .next/
 *.tsbuildinfo
 *.log
+
+# Arquivo local gerado pelo Next.js
+AGENTS.md

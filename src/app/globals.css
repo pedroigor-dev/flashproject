@@ -778,7 +778,7 @@ svg {
   text-decoration: underline;
   text-underline-offset: 4px;
 }
-/* Conversation workspace */
+
 .chat-app {
   height: 100dvh;
   display: flex;
@@ -1975,7 +1975,7 @@ svg {
     transform: rotateY(0deg) rotateZ(-12deg);
   }
 }
-/* Mobile refinement: keep the intended three-line headline and hide closed navigation from keyboard focus. */
+
 @media (max-width: 760px) {
   .hero h1 {
     font-size: clamp(48px, 13.3vw, 72px);

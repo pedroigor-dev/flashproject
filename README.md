@@ -98,10 +98,10 @@ src/
 │   ├── Flashinho.tsx            # Mascote em SVG
 │   ├── ChatEntrance.tsx         # Transição com as letras Flash
 │   └── *.module.css            # Animações e estilos isolados
-└── lib/knowledge.ts             # Sugestões e conteúdo da versão inicial
+└── lib/chat.ts                  # Tipos e sugestões do chat
 ```
 
-A função de respostas demonstrativas da versão inicial permanece em `knowledge.ts`, mas o chat atual usa a API. Ela não serve como fallback quando o provedor falha.
+O chat usa a API do backend. Falhas de conexão são exibidas ao usuário, sem substituir a resposta por conteúdo simulado.
 
 ## Escolhas do projeto
 

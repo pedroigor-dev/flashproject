@@ -1,4 +1,5 @@
 'use client';
+
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowUpRight, ArrowRight, Pause, Play, X, CreditCard, Heart, Layers } from 'lucide-react';
@@ -22,16 +23,22 @@ export default function Home() {
     return () => clearTimeout(t);
   }, []);
   useEffect(() => {
-    if (about) close.current?.focus();
+    if (about) {
+      close.current?.focus();
+    }
   }, [about]);
   useEffect(() => {
-    if (!leaving) return;
+    if (!leaving) {
+      return;
+    }
     const duration = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 900;
     const timer = setTimeout(() => setIntro(false), duration);
     return () => clearTimeout(timer);
   }, [leaving]);
   useEffect(() => {
-    if (!intro) landing.current?.focus({ preventScroll: true });
+    if (!intro) {
+      landing.current?.focus({ preventScroll: true });
+    }
   }, [intro]);
   function finish() {
     setLeaving(true);
@@ -45,7 +52,9 @@ export default function Home() {
           aria-modal="true"
           aria-label="Bem-vindo à Flash"
           onKeyDown={(e) => {
-            if (e.key === 'Escape') finish();
+            if (e.key === 'Escape') {
+              finish();
+            }
             if (e.key === 'Tab') {
               e.preventDefault();
               skip.current?.focus();
@@ -208,7 +217,9 @@ export default function Home() {
             aria-labelledby="about-title"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
-              if (e.key === 'Escape') setAbout(false);
+              if (e.key === 'Escape') {
+                setAbout(false);
+              }
               if (e.key === 'Tab') {
                 const els = e.currentTarget.querySelectorAll<HTMLElement>('button,a');
                 const first = els[0],

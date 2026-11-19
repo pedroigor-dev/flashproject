@@ -1,4 +1,5 @@
 'use client';
+
 import Link from 'next/link';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -23,7 +24,7 @@ import {
 } from 'lucide-react';
 import Brand from '@/components/Brand';
 import Flashinho from '@/components/Flashinho';
-import { suggestions, type Answer } from '@/lib/knowledge';
+import { suggestions, type Answer } from '@/lib/chat';
 type Message = Answer & {
   role: 'user' | 'assistant';
   id: string;
@@ -31,6 +32,7 @@ type Message = Answer & {
   sources?: { title: string; url: string }[];
 };
 type Conversation = { id: string; title: string; messages: Message[] };
+
 export default function Chat() {
   const [chats, setChats] = useState<Conversation[]>([]);
   const [active, setActive] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export default function Chat() {
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('flash-conversations') || '[]');
-      if (Array.isArray(saved))
+      if (Array.isArray(saved)) {
         setChats(
           saved
             .filter(
@@ -63,6 +65,7 @@ export default function Chat() {
             )
             .slice(0, 30),
         );
+      }
     } catch {}
     setReady(true);
     return () => {
@@ -70,10 +73,11 @@ export default function Chat() {
     };
   }, []);
   useEffect(() => {
-    if (ready)
+    if (ready) {
       try {
         localStorage.setItem('flash-conversations', JSON.stringify(chats.slice(0, 30)));
       } catch {}
+    }
   }, [chats, ready]);
   useEffect(() => {
     bottom.current?.scrollIntoView({
@@ -106,7 +110,9 @@ export default function Chat() {
   }, []);
   async function send(value = input) {
     const text = value.trim();
-    if (!text || requestRef.current) return;
+    if (!text || requestRef.current) {
+      return;
+    }
     const id = active || crypto.randomUUID();
     const message: Message = { role: 'user', text: text.slice(0, 2000), id: crypto.randomUUID() };
     const history = [...messages.filter((m) => !m.error), message]
@@ -121,10 +127,11 @@ export default function Chat() {
         [{ id, title: text.slice(0, 45), messages: [message] }, ...prev].slice(0, 30),
       );
       setActive(id);
-    } else
+    } else {
       setChats((prev) =>
         prev.map((c) => (c.id === id ? { ...c, messages: [...c.messages, message] } : c)),
       );
+    }
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -133,14 +140,19 @@ export default function Chat() {
         signal: controller.signal,
       });
       const data = await response.json();
-      if (!response.ok)
+      if (!response.ok) {
         throw new Error(
           typeof data.message === 'string'
             ? data.message
             : 'Não foi possível responder agora. Tente novamente.',
         );
-      if (typeof data.text !== 'string') throw new Error('A IA retornou uma resposta inválida.');
-      if (controller.signal.aborted) return;
+      }
+      if (typeof data.text !== 'string') {
+        throw new Error('A IA retornou uma resposta inválida.');
+      }
+      if (controller.signal.aborted) {
+        return;
+      }
       setAiStatus(`IA · ${data.provider === 'groq' ? 'Groq' : 'Hugging Face'}`);
       const answer: Message = {
         role: 'assistant',
@@ -152,7 +164,9 @@ export default function Chat() {
         prev.map((c) => (c.id === id ? { ...c, messages: [...c.messages, answer] } : c)),
       );
     } catch (error) {
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted) {
+        return;
+      }
       const answer: Message = {
         role: 'assistant',
         text: error instanceof Error ? error.message : 'A conexão falhou. Tente novamente.',
@@ -235,7 +249,9 @@ export default function Chat() {
                   className="delete-chat"
                   aria-label={`Excluir conversa ${c.title}`}
                   onClick={() => {
-                    if (active === c.id) newChat();
+                    if (active === c.id) {
+                      newChat();
+                    }
                     setChats((prev) => prev.filter((x) => x.id !== c.id));
                   }}
                 >
@@ -374,7 +390,9 @@ export default function Chat() {
                             )
                             .reverse()
                             .find((x) => x.role === 'user');
-                          if (last) send(last.text);
+                          if (last) {
+                            send(last.text);
+                          }
                         }}
                         disabled={busy}
                       >

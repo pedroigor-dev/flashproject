@@ -21,19 +21,19 @@ export default function ChatEntrance({ children }: { children: React.ReactNode }
     let finishTimer: ReturnType<typeof setTimeout>;
     let minimumTimer: ReturnType<typeof setTimeout>;
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    // This template mounts with the chat. Wait for the local font too, so the
-    // visible word and the transparent cutout always have identical geometry.
+
     const minimum = new Promise<void>((resolve) => {
       minimumTimer = setTimeout(resolve, reduced ? 0 : 1700);
     });
     Promise.all([document.fonts.ready, minimum]).then(() => {
-      if (cancelled) return;
+      if (cancelled) {
+        return;
+      }
       if (reduced) {
         setPhase('done');
         return;
       }
-      // Dive into the solid stem of the "l", never the gap between letters.
-      // Measure after font loading so the focal point also fits mobile type.
+
       const word = maskWord.current;
       const context = document.createElement('canvas').getContext('2d');
       if (word && context) {
@@ -41,7 +41,7 @@ export default function ChatEntrance({ children }: { children: React.ReactNode }
         context.font = `${font.fontWeight} ${font.fontSize} ${font.fontFamily}`;
         const glyph = context.measureText('l');
         const start = word.getStartPositionOfChar(1);
-        // Glyph ink bounds exclude the advance width and negative tracking.
+
         const x = start.x + (glyph.actualBoundingBoxRight - glyph.actualBoundingBoxLeft) / 2;
         const y = start.y + (glyph.actualBoundingBoxDescent - glyph.actualBoundingBoxAscent) / 2;
         setZoomOrigin(`${x}px ${y}px`);
@@ -60,7 +60,9 @@ export default function ChatEntrance({ children }: { children: React.ReactNode }
   }, []);
 
   useEffect(() => {
-    if (phase === 'done') content.current?.focus({ preventScroll: true });
+    if (phase === 'done') {
+      content.current?.focus({ preventScroll: true });
+    }
   }, [phase]);
 
   return (
