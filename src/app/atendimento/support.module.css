@@ -1238,3 +1238,25 @@
     transition: none;
   }
 }
+
+.sampleReceipt {
+  display: flex;
+  gap: 7px;
+  justify-content: center;
+  align-items: center;
+  font-size: 10px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  margin: 15px auto 8px;
+}
+
+.advice p {
+  margin: 0 0 12px;
+  color: inherit;
+}
+.advice p:last-child {
+  margin-bottom: 0;
+}
+.advice {
+  white-space: normal;
+}

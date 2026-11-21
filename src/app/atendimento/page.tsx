@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Markdown from 'react-markdown';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowUpRight,
@@ -44,7 +45,9 @@ export default function SupportPage() {
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [advice, setAdvice] = useState('');
+  const [advice, setAdvice] = useState<{ caseId: string; status: string; text: string } | null>(
+    null,
+  );
   const [question, setQuestion] = useState('');
   const [thinking, setThinking] = useState(false);
   const requestKey = useRef('');
@@ -81,7 +84,7 @@ export default function SupportPage() {
   }, []);
 
   useEffect(() => {
-    setAdvice('');
+    setAdvice(null);
     setQuestion('');
     if (selected || creating) {
       detailTitle.current?.focus();
@@ -151,7 +154,7 @@ export default function SupportPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: question.trim() }),
       });
-      setAdvice(result.text);
+      setAdvice({ caseId, status: active.status, text: result.text });
     } catch (error) {
       setError(
         error instanceof Error ? error.message : 'O Flashinho não conseguiu responder agora.',
@@ -425,7 +428,7 @@ export default function SupportPage() {
                 className={styles.back}
                 onClick={() => {
                   setSelected(null);
-                  setAdvice('');
+                  setAdvice(null);
                 }}
               >
                 <ArrowLeft size={15} /> Meus atendimentos
@@ -508,6 +511,13 @@ export default function SupportPage() {
                         <Upload size={24} />
                         <h3>Vamos guardar o comprovante?</h3>
                         <p>Use um arquivo fictício em PDF, PNG ou JPEG, de até 5 MB.</p>
+                        <a
+                          className={styles.sampleReceipt}
+                          href="/fixtures/comprovante-demo.pdf"
+                          download
+                        >
+                          Baixar um comprovante de teste <Download size={13} />
+                        </a>
                         <input
                           ref={fileInput}
                           type="file"
@@ -594,7 +604,9 @@ export default function SupportPage() {
                       />
                       <button className={styles.secondary} disabled={thinking}>
                         {thinking ? (
-                          <LoaderCircle className={styles.spin} size={16} />
+                          <>
+                            <LoaderCircle className={styles.spin} size={16} /> Consultando…
+                          </>
                         ) : (
                           <>
                             Perguntar ao Flashinho <ArrowUpRight size={15} />
@@ -602,9 +614,14 @@ export default function SupportPage() {
                         )}
                       </button>
                     </form>
-                    {advice && (
+                    {advice && advice.caseId === active.id && advice.status === active.status && (
                       <div className={styles.advice} role="status">
-                        {advice}
+                        <Markdown
+                          skipHtml
+                          allowedElements={['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'code']}
+                        >
+                          {advice.text}
+                        </Markdown>
                       </div>
                     )}
                   </div>

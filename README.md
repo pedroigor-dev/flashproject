@@ -148,3 +148,13 @@ npm run format:check
 ```
 
 O primeiro comando formata os arquivos; o segundo verifica o padrão sem alterá-los. Arquivos gerados, imagens e variáveis de ambiente ficam fora da formatação.
+
+## Central de atendimento
+
+![Central de atendimento com acompanhamento de estornos](docs/images/support.jpg)
+
+Acesse `/atendimento` para experimentar uma solicitação de estorno com compras fictícias. Escolha a compra, descreva o ocorrido, confirme o contato com a loja e envie um comprovante de teste. A linha do tempo acompanha a triagem do n8n e permite simular a conclusão. O Flashinho também responde dúvidas considerando a etapa do protocolo.
+
+O frontend usa um proxy com sessão em cookie HttpOnly; arquivos e credenciais da AWS ficam no backend. Inicie o backend e configure `FLASH_BACKEND_URL` no `.env.local` se usar outra porta. O histórico da central pertence à sessão do navegador e não ao histórico local do chat. Esta demonstração não acessa sua conta Flash nem realiza estornos reais.
+
+Consulte a [documentação da automação e infraestrutura](https://github.com/pedroigor-dev/flashbackend/blob/main/docs/support.md) para configurar n8n, S3 e SQS.

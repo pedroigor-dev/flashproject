@@ -16,7 +16,11 @@ async function proxy(request: Request, context: { params: Promise<{ path?: strin
   }
   if (request.method !== 'GET') {
     const origin = request.headers.get('origin');
-    if (!origin || new URL(origin).host !== request.headers.get('host')) {
+    try {
+      if (!origin || new URL(origin).host !== request.headers.get('host')) {
+        return Response.json({ message: 'Origem não permitida.' }, { status: 403 });
+      }
+    } catch {
       return Response.json({ message: 'Origem não permitida.' }, { status: 403 });
     }
   }
@@ -69,7 +73,10 @@ async function proxy(request: Request, context: { params: Promise<{ path?: strin
         body: body as BodyInit | undefined,
         redirect: 'manual',
         cache: 'no-store',
-        signal: AbortSignal.any([request.signal, AbortSignal.timeout(30000)]),
+        signal: AbortSignal.any([
+          request.signal,
+          AbortSignal.timeout(endpoint.endsWith('/advice') ? 50000 : 30000),
+        ]),
       },
     );
     const outgoing = new Headers({ 'Cache-Control': 'no-store' });
