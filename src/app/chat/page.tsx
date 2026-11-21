@@ -228,6 +228,9 @@ export default function Chat() {
         >
           <Building2 size={16} /> Universo Flash <ArrowUpRight size={13} />
         </a>
+        <Link className="sidebar-item" href="/atendimento">
+          <MessageSquare size={16} /> Central de atendimento <ArrowUpRight size={13} />
+        </Link>
         <div className="sidebar-label history-label">CONVERSAS RECENTES</div>
         <div className="history">
           {chats.length === 0 ? (

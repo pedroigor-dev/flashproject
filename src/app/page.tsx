@@ -92,6 +92,9 @@ export default function Home() {
         <header className="header">
           <Brand />
           <nav aria-label="Navegação principal">
+            <Link href="/atendimento">
+              Central de atendimento <ArrowUpRight size={13} />
+            </Link>
             <button onClick={() => setAbout(true)}>
               Conheça a Flash <ArrowUpRight size={13} />
             </button>
