@@ -29,13 +29,13 @@ const guide = {
   tracking: {
     step: '03 · Acompanhar',
     title: 'Acompanhe seu protocolo',
-    text: 'A linha do tempo registra tudo, da abertura à triagem. Você pode voltar aqui para acompanhar as atualizações.',
+    text: 'Veja o próximo passo no topo. Para consultar o que já aconteceu, abra “Histórico do atendimento”.',
   },
 };
 
 const nextStep: Record<CaseStatus, string> = {
   waiting_merchant:
-    'Depois que a loja confirmar o cancelamento, registre a confirmação na linha do tempo.',
+    'Depois que a loja confirmar o cancelamento, registre a confirmação em “Próximo passo”.',
   waiting_receipt:
     'Baixe o comprovante de teste e selecione o PDF em “Escolher Arquivo”. Isso dispara a triagem.',
   queued:

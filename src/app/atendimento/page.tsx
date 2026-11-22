@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowUpRight,
   ArrowRight,
@@ -10,19 +10,15 @@ import {
   ChevronRight,
   Clock3,
   FileText,
-  Headphones,
   LifeBuoy,
   LoaderCircle,
-  Plus,
   Upload,
-  Wallet,
   X,
   Download,
   ShieldCheck,
   MessageCircle,
 } from 'lucide-react';
 import Brand from '@/components/Brand';
-import Flashinho from '@/components/Flashinho';
 import {
   Dashboard,
   SupportCase,
@@ -34,6 +30,15 @@ import {
 import styles from './support.module.css';
 import RefundTour from './RefundTour';
 
+type Action = 'create' | 'confirm' | 'upload' | 'finish';
+
+const pendingLabels: Record<Action, string> = {
+  create: 'Abrindo atendimento…',
+  confirm: 'Registrando confirmação…',
+  upload: 'Enviando comprovante…',
+  finish: 'Concluindo simulação…',
+};
+
 export default function SupportPage() {
   const [data, setData] = useState<Dashboard | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -43,47 +48,79 @@ export default function SupportPage() {
   const [reason, setReason] = useState('cancelled');
   const [description, setDescription] = useState('');
   const [confirmed, setConfirmed] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<Action | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [error, setError] = useState('');
   const [openChatRequest, setOpenChatRequest] = useState(0);
   const requestKey = useRef('');
   const fileInput = useRef<HTMLInputElement>(null);
   const detailTitle = useRef<HTMLHeadingElement>(null);
+  const actionTitle = useRef<HTMLHeadingElement>(null);
+  const errorNotice = useRef<HTMLDivElement>(null);
+  const visitedStep = useRef(false);
+  const inFlight = useRef(false);
+  const revision = useRef(0);
+  const focusNextAction = useRef(false);
   const active = data?.cases.find((item) => item.id === selected);
   const purchase = data?.transactions.find((item) => item.id === transactionId);
 
-  const refresh = useCallback(async () => {
-    const result = await supportRequest<Dashboard>();
-    setData(result);
-  }, []);
+  const hasQueued = data?.cases.some((item) => item.status === 'queued');
 
   useEffect(() => {
-    let stopped = false;
-    const load = async () => {
+    const controller = new AbortController();
+    void supportRequest<Dashboard>('', { signal: controller.signal })
+      .then((result) => {
+        if (!controller.signal.aborted) setData(result);
+      })
+      .catch((failure) => {
+        if (!controller.signal.aborted) {
+          setError(
+            failure instanceof Error ? failure.message : 'Não foi possível carregar a central.',
+          );
+        }
+      });
+    return () => controller.abort();
+  }, [attempt]);
+
+  useEffect(() => {
+    if (!hasQueued) return;
+    const controller = new AbortController();
+    let nextPoll: ReturnType<typeof setTimeout>;
+    async function poll() {
+      const atStart = revision.current;
       try {
-        const result = await supportRequest<Dashboard>();
-        if (!stopped) {
+        const result = await supportRequest<Dashboard>('', { signal: controller.signal });
+        if (!controller.signal.aborted && atStart === revision.current && !inFlight.current) {
           setData(result);
         }
-      } catch (error) {
-        if (!stopped) {
-          setError(error instanceof Error ? error.message : 'Não foi possível carregar a central.');
-        }
+      } catch {
+        // The next poll can recover without interrupting the current step.
+      } finally {
+        if (!controller.signal.aborted) nextPoll = setTimeout(poll, 2500);
       }
-    };
-    void load();
-    const interval = setInterval(() => void load(), 10000);
+    }
+    nextPoll = setTimeout(poll, 2500);
     return () => {
-      stopped = true;
-      clearInterval(interval);
+      controller.abort();
+      clearTimeout(nextPoll);
     };
-  }, []);
+  }, [hasQueued]);
 
   useEffect(() => {
-    if (selected || creating) {
-      detailTitle.current?.focus();
-    }
+    if (selected || creating) visitedStep.current = true;
+    if (visitedStep.current) detailTitle.current?.focus();
   }, [selected, creating, step]);
+
+  useEffect(() => {
+    if (error) errorNotice.current?.focus();
+  }, [error]);
+
+  useEffect(() => {
+    if (!pending && focusNextAction.current) {
+      focusNextAction.current = false;
+      actionTitle.current?.focus({ preventScroll: true });
+    }
+  }, [pending]);
 
   function start() {
     setSelected(null);
@@ -91,16 +128,21 @@ export default function SupportPage() {
     setStep(1);
     setDescription('');
     setTransactionId('');
+    setReason('cancelled');
     setConfirmed(false);
     setError('');
     requestKey.current = crypto.randomUUID();
   }
 
-  async function mutate(action: () => Promise<SupportCase>) {
-    setBusy(true);
+  async function mutate(type: Action, action: () => Promise<SupportCase>) {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    revision.current += 1;
+    setPending(type);
     setError('');
     try {
       const item = await action();
+      focusNextAction.current = type !== 'create';
       setData((previous) =>
         previous
           ? {
@@ -114,7 +156,9 @@ export default function SupportPage() {
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Não foi possível concluir a ação.');
     } finally {
-      setBusy(false);
+      revision.current += 1;
+      inFlight.current = false;
+      setPending(null);
     }
   }
 
@@ -128,7 +172,9 @@ export default function SupportPage() {
     }
     const body = new FormData();
     body.append('file', file);
-    await mutate(() => supportRequest(`/cases/${active.id}/attachments`, { method: 'POST', body }));
+    await mutate('upload', () =>
+      supportRequest(`/cases/${active.id}/attachments`, { method: 'POST', body }),
+    );
     if (fileInput.current) {
       fileInput.current.value = '';
     }
@@ -153,6 +199,7 @@ export default function SupportPage() {
           <div className={styles.spaceLabel}>SEU ESPAÇO</div>
           <button
             className={styles.navActive}
+            disabled={Boolean(pending)}
             onClick={() => {
               setSelected(null);
               setCreating(false);
@@ -164,17 +211,6 @@ export default function SupportPage() {
           <Link href="/chat" className={styles.navLink}>
             <MessageCircle size={18} /> Conheça o Flashinho <ArrowUpRight size={14} />
           </Link>
-          <div className={styles.sidebarCard}>
-            <div className={styles.mascot}>
-              <Flashinho />
-            </div>
-            <h3>
-              Vamos resolver
-              <br />
-              um passo de cada vez.
-            </h3>
-            <p>Entenda o caminho do seu estorno e acompanhe cada atualização.</p>
-          </div>
           <div className={styles.privateNote}>
             <ShieldCheck size={17} />
             <p>
@@ -184,12 +220,13 @@ export default function SupportPage() {
             </p>
           </div>
           {data && (
-            <small className={styles.systemStatus}>
+            <details className={styles.systemStatus}>
+              <summary>Integrações da demonstração</summary>
               Anexos: {data.integrations.storage === 's3' ? 'Amazon S3' : 'armazenamento local'}
               <br />
               Fila: {data.integrations.queue === 'sqs' ? 'Amazon SQS' : 'local'} · n8n{' '}
               {data.integrations.automation ? 'configurado' : 'pendente'}
-            </small>
+            </details>
           )}
         </aside>
         <div className={styles.content}>
@@ -205,49 +242,58 @@ export default function SupportPage() {
             )}
           </div>
           {error && (
-            <div className={styles.error} role="alert">
+            <div ref={errorNotice} className={styles.error} role="alert" tabIndex={-1}>
               <span>{error}</span>
-              <button aria-label="Fechar aviso" onClick={() => setError('')}>
-                <X size={16} />
-              </button>
-            </div>
-          )}
-          {!data ? (
-            <div className={styles.loading}>
-              <LoaderCircle className={styles.spin} /> Preparando sua central…
-              {error && (
-                <button
-                  onClick={() => {
-                    setError('');
-                    void refresh().catch((error) => setError(error.message));
-                  }}
-                >
-                  Tentar novamente
+              {data && (
+                <button aria-label="Fechar aviso" onClick={() => setError('')}>
+                  <X size={16} />
                 </button>
               )}
             </div>
+          )}
+          {!data ? (
+            error ? (
+              <button
+                className={styles.secondary}
+                onClick={() => {
+                  setError('');
+                  setAttempt((value) => value + 1);
+                }}
+              >
+                Tentar novamente
+              </button>
+            ) : (
+              <div className={styles.loading} role="status">
+                <span>Carregando atendimentos…</span>
+                <div aria-hidden="true" className={styles.skeleton}>
+                  <i />
+                  <i />
+                  <i />
+                </div>
+              </div>
+            )
           ) : creating ? (
-            <section className={styles.formSection}>
+            <section key="form" className={`${styles.formSection} ${styles.enter}`}>
               <button
                 className={styles.back}
+                disabled={Boolean(pending)}
                 onClick={() => (step === 1 ? setCreating(false) : setStep(1))}
               >
                 <ArrowLeft size={15} />
                 {step === 1 ? 'Voltar para a central' : 'Escolher outra compra'}
               </button>
-              <span className={styles.eyebrow}>VAMOS ORGANIZAR ISSO</span>
               <h1 ref={detailTitle} tabIndex={-1}>
-                Seu estorno começa aqui<span>.</span>
+                {step === 1 ? 'Qual compra precisa de ajuda?' : 'O que aconteceu com a compra?'}
               </h1>
-              <p className={styles.subtitle}>
-                Conte o que aconteceu. A gente te mostra o próximo passo.
-              </p>
-              <div className={styles.steps}>
-                <span className={styles.stepActive}>
+              <div className={styles.steps} aria-label="Etapas do estorno">
+                <span className={styles.stepActive} aria-current={step === 1 ? 'step' : undefined}>
                   01 <b>A compra</b>
                 </span>
                 <i />
-                <span className={step === 2 ? styles.stepActive : ''}>
+                <span
+                  className={step === 2 ? styles.stepActive : ''}
+                  aria-current={step === 2 ? 'step' : undefined}
+                >
                   02 <b>O que aconteceu</b>
                 </span>
                 <i />
@@ -256,9 +302,7 @@ export default function SupportPage() {
                 </span>
               </div>
               {step === 1 ? (
-                <div className={styles.formCard}>
-                  <h2>Qual compra precisa de ajuda?</h2>
-                  <p>Estas transações são exemplos para você testar o fluxo.</p>
+                <div key="purchase" className={`${styles.formCard} ${styles.enter}`}>
                   <div
                     className={styles.purchaseList}
                     data-refund-tour={transactionId ? undefined : 'purchase'}
@@ -268,6 +312,7 @@ export default function SupportPage() {
                       return (
                         <button
                           key={tx.id}
+                          aria-pressed={existing ? undefined : transactionId === tx.id}
                           className={`${styles.purchase} ${transactionId === tx.id ? styles.purchaseSelected : ''}`}
                           onClick={() =>
                             existing
@@ -296,9 +341,6 @@ export default function SupportPage() {
                     })}
                   </div>
                   <div className={styles.formFooter}>
-                    <span>
-                      <ShieldCheck size={15} /> Nenhuma movimentação real
-                    </span>
                     <button
                       className={styles.primary}
                       data-refund-tour={transactionId ? 'purchase' : undefined}
@@ -311,11 +353,12 @@ export default function SupportPage() {
                 </div>
               ) : (
                 <form
-                  className={styles.formCard}
+                  key="details"
+                  className={`${styles.formCard} ${styles.enter}`}
                   data-refund-tour="details"
                   onSubmit={(event) => {
                     event.preventDefault();
-                    void mutate(() =>
+                    void mutate('create', () =>
                       supportRequest('/cases', {
                         method: 'POST',
                         headers: {
@@ -342,7 +385,11 @@ export default function SupportPage() {
                   </div>
                   <label className={styles.field}>
                     O que aconteceu?
-                    <select value={reason} onChange={(event) => setReason(event.target.value)}>
+                    <select
+                      disabled={Boolean(pending)}
+                      value={reason}
+                      onChange={(event) => setReason(event.target.value)}
+                    >
                       <option value="cancelled">A compra foi cancelada</option>
                       <option value="duplicate">Apareceu uma cobrança duplicada</option>
                       <option value="declined">
@@ -354,6 +401,7 @@ export default function SupportPage() {
                     Conte um pouco mais
                     <textarea
                       value={description}
+                      disabled={Boolean(pending)}
                       onChange={(event) => setDescription(event.target.value)}
                       minLength={10}
                       maxLength={2000}
@@ -368,29 +416,21 @@ export default function SupportPage() {
                     <input
                       type="checkbox"
                       checked={confirmed}
+                      disabled={Boolean(pending)}
                       onChange={(event) => setConfirmed(event.target.checked)}
                     />
                     <span>O estabelecimento já confirmou o cancelamento.</span>
                   </label>
-                  <div className={styles.callout}>
-                    <FileText size={19} />
-                    <p>
-                      O estabelecimento inicia o cancelamento. Se ainda não falou com a loja, tudo
-                      bem: vamos guardar seu caso e orientar esse primeiro passo.
-                    </p>
-                  </div>
                   <div className={styles.formFooter}>
-                    <span>Um protocolo para acompanhar tudo.</span>
                     <button
                       className={styles.primary}
-                      disabled={busy || description.trim().length < 10}
+                      disabled={Boolean(pending) || description.trim().length < 10}
                     >
-                      {busy ? (
+                      {pending === 'create' ? pendingLabels.create : 'Abrir atendimento'}
+                      {pending === 'create' ? (
                         <LoaderCircle className={styles.spin} size={17} />
                       ) : (
-                        <>
-                          Abrir atendimento <ArrowUpRight size={17} />
-                        </>
+                        <ArrowUpRight size={17} />
                       )}
                     </button>
                   </div>
@@ -398,9 +438,10 @@ export default function SupportPage() {
               )}
             </section>
           ) : active ? (
-            <section>
+            <section key={active.id} className={styles.enter}>
               <button
                 className={styles.back}
+                disabled={Boolean(pending)}
                 onClick={() => {
                   setSelected(null);
                 }}
@@ -411,13 +452,11 @@ export default function SupportPage() {
                 <div>
                   <span className={styles.eyebrow}>{active.protocol}</span>
                   <h1 ref={detailTitle} tabIndex={-1}>
-                    Tudo no seu tempo<span>.</span>
+                    Acompanhar estorno
                   </h1>
-                  <p className={styles.subtitle}>
-                    Você acompanha o caminho. A gente organiza os próximos passos.
-                  </p>
                 </div>
                 <span
+                  role="status"
                   className={`${styles.status} ${active.status === 'completed' ? styles.complete : ''}`}
                 >
                   {active.status === 'completed' ? <Check size={14} /> : <Clock3 size={14} />}
@@ -437,10 +476,107 @@ export default function SupportPage() {
                     <strong>{money(active.transaction.amount)}</strong>
                   </div>
                   <div className={styles.timelineCard}>
-                    <div className={styles.cardHeading} data-refund-tour="tracking">
-                      <h2>O caminho do seu estorno</h2>
-                      <span>ATUALIZADO {shortDate(active.updatedAt)}</span>
-                    </div>
+                    <h2 ref={actionTitle} tabIndex={-1} data-refund-tour="tracking">
+                      {active.status === 'completed' ? 'Resultado' : 'Próximo passo'}
+                    </h2>
+                    {active.status === 'waiting_merchant' && (
+                      <div className={styles.nextAction}>
+                        <p>
+                          Peça o cancelamento à loja. Quando ela confirmar, registre a confirmação
+                          aqui.
+                        </p>
+                        <button
+                          className={styles.primary}
+                          disabled={Boolean(pending)}
+                          onClick={() =>
+                            void mutate('confirm', () =>
+                              supportRequest(`/cases/${active.id}/merchant`, { method: 'POST' }),
+                            )
+                          }
+                        >
+                          {pending === 'confirm'
+                            ? pendingLabels.confirm
+                            : 'A loja confirmou o cancelamento'}
+                          {pending === 'confirm' ? (
+                            <LoaderCircle className={styles.spin} size={16} />
+                          ) : (
+                            <ArrowRight size={16} />
+                          )}
+                        </button>
+                      </div>
+                    )}
+                    {active.status === 'waiting_receipt' && (
+                      <div className={styles.uploadBox}>
+                        <Upload size={24} />
+                        <h3>Anexe o comprovante de cancelamento</h3>
+                        <p>Use um arquivo fictício em PDF, PNG ou JPEG, de até 5 MB.</p>
+                        <a
+                          className={styles.sampleReceipt}
+                          href="/fixtures/comprovante-demo.pdf"
+                          download
+                        >
+                          Baixar um comprovante de teste <Download size={13} />
+                        </a>
+                        <input
+                          ref={fileInput}
+                          type="file"
+                          accept="application/pdf,image/png,image/jpeg"
+                          aria-label="Selecionar comprovante de teste"
+                          disabled={Boolean(pending)}
+                          onChange={(event) => void upload(event.target.files?.[0])}
+                        />
+                        {pending === 'upload' && <p>{pendingLabels.upload}</p>}
+                      </div>
+                    )}
+                    {active.status === 'queued' && (
+                      <div className={styles.callout}>
+                        <Clock3 size={19} />
+                        <p>
+                          {data.integrations.automation
+                            ? 'O comprovante está na fila. O status será atualizado aqui após a triagem.'
+                            : 'O comprovante está salvo. A triagem começará quando a integração com o n8n for configurada.'}
+                        </p>
+                      </div>
+                    )}
+                    {active.status === 'reviewing' && data.integrations.simulationEnabled && (
+                      <div className={styles.simulation}>
+                        <p>
+                          A triagem terminou. Você pode encerrar o teste sem movimentar saldo real.
+                        </p>
+                        <button
+                          className={styles.secondary}
+                          disabled={Boolean(pending)}
+                          onClick={() =>
+                            void mutate('finish', () =>
+                              supportRequest(`/cases/${active.id}/simulate`, { method: 'POST' }),
+                            )
+                          }
+                        >
+                          {pending === 'finish' ? pendingLabels.finish : 'Simular conclusão'}
+                          {pending === 'finish' ? (
+                            <LoaderCircle className={styles.spin} size={16} />
+                          ) : (
+                            <ArrowRight size={16} />
+                          )}
+                        </button>
+                      </div>
+                    )}
+                    {active.status === 'reviewing' && !data.integrations.simulationEnabled && (
+                      <p className={styles.nextAction}>
+                        A triagem foi concluída. Acompanhe as atualizações neste protocolo.
+                      </p>
+                    )}
+                    {active.status === 'completed' && (
+                      <div className={styles.success}>
+                        <Check size={20} />
+                        <p>Estorno de teste concluído. Seu saldo real não foi alterado.</p>
+                      </div>
+                    )}
+                  </div>
+                  <details className={styles.report}>
+                    <summary>
+                      Histórico do atendimento <span>{active.events.length}</span>
+                    </summary>
                     <ol className={styles.timeline}>
                       {active.events.map((event, index) => (
                         <li key={event.id}>
@@ -467,83 +603,9 @@ export default function SupportPage() {
                         </li>
                       ))}
                     </ol>
-                    {active.status === 'waiting_merchant' && (
-                      <button
-                        className={styles.primary}
-                        disabled={busy}
-                        onClick={() =>
-                          void mutate(() =>
-                            supportRequest(`/cases/${active.id}/merchant`, { method: 'POST' }),
-                          )
-                        }
-                      >
-                        A loja confirmou o cancelamento <ArrowRight size={16} />
-                      </button>
-                    )}
-                    {active.status === 'waiting_receipt' && (
-                      <div className={styles.uploadBox}>
-                        <Upload size={24} />
-                        <h3>Vamos guardar o comprovante?</h3>
-                        <p>Use um arquivo fictício em PDF, PNG ou JPEG, de até 5 MB.</p>
-                        <a
-                          className={styles.sampleReceipt}
-                          href="/fixtures/comprovante-demo.pdf"
-                          download
-                        >
-                          Baixar um comprovante de teste <Download size={13} />
-                        </a>
-                        <input
-                          ref={fileInput}
-                          type="file"
-                          accept="application/pdf,image/png,image/jpeg"
-                          aria-label="Selecionar comprovante de teste"
-                          disabled={busy}
-                          onChange={(event) => void upload(event.target.files?.[0])}
-                        />
-                        {busy && <p role="status">Enviando seu arquivo…</p>}
-                      </div>
-                    )}
-                    {active.status === 'queued' && (
-                      <div className={styles.callout}>
-                        <Clock3 size={19} />
-                        <p>
-                          {data.integrations.automation
-                            ? 'O comprovante está na fila. A página acompanha a triagem automaticamente.'
-                            : 'O comprovante está salvo. A triagem começará quando a integração com o n8n for configurada.'}
-                        </p>
-                      </div>
-                    )}
-                    {active.status === 'reviewing' && data.integrations.simulationEnabled && (
-                      <div className={styles.simulation}>
-                        <p>
-                          Quer ver o fluxo até o fim? Simule uma análise aprovada. Isso não
-                          movimenta dinheiro.
-                        </p>
-                        <button
-                          className={styles.secondary}
-                          disabled={busy}
-                          onClick={() =>
-                            void mutate(() =>
-                              supportRequest(`/cases/${active.id}/simulate`, { method: 'POST' }),
-                            )
-                          }
-                        >
-                          Simular conclusão <ArrowRight size={16} />
-                        </button>
-                      </div>
-                    )}
-                    {active.status === 'completed' && (
-                      <div className={styles.success}>
-                        <Check size={20} />
-                        <p>
-                          Pronto! Você chegou ao fim da demonstração. Nenhum saldo real foi
-                          alterado.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  <div className={styles.report}>
-                    <h3>Seu relato</h3>
+                  </details>
+                  <details className={styles.report}>
+                    <summary>Relato e comprovantes</summary>
                     <p>{active.description}</p>
                     {active.attachments.map((file) => (
                       <a
@@ -555,17 +617,12 @@ export default function SupportPage() {
                         <Download size={15} />
                       </a>
                     ))}
-                  </div>
+                  </details>
                 </div>
                 <aside className={styles.detailAside}>
                   <div className={styles.helperCard}>
-                    <Flashinho />
-                    <span className={styles.eyebrow}>UMA AJUDA POR AQUI</span>
-                    <h2>Sem ficar no escuro.</h2>
-                    <p>
-                      O Flashinho pode explicar as etapas e orientar seu próximo passo, considerando
-                      este atendimento.
-                    </p>
+                    <h2>Precisa de ajuda?</h2>
+                    <p>O Flashinho pode explicar a etapa atual do seu estorno.</p>
                     <button
                       className={styles.secondary}
                       onClick={() => setOpenChatRequest((value) => value + 1)}
@@ -573,34 +630,26 @@ export default function SupportPage() {
                       Perguntar ao Flashinho <ArrowUpRight size={15} />
                     </button>
                   </div>
-                  <div className={styles.sourceCard}>
-                    <FileText size={19} />
-                    <h3>Como funciona na prática?</h3>
-                    <p>
-                      As orientações seguem o guia público de estornos da Flash. Prazos reais
-                      dependem do caso e dos participantes do pagamento.
-                    </p>
-                    <a href={data.guide.url} target="_blank" rel="noreferrer">
-                      Consultar guia oficial <ArrowUpRight size={14} />
-                    </a>
-                  </div>
+                  <a
+                    className={styles.guideLink}
+                    href={data.guide.url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Guia de estornos da Flash <ArrowUpRight size={14} />
+                  </a>
                 </aside>
               </div>
             </section>
           ) : (
-            <>
+            <div key="dashboard" className={styles.enter}>
               <section className={styles.hero}>
                 <div>
-                  <span className={styles.eyebrow}>ESTAMOS POR AQUI</span>
-                  <h1>
-                    Uma ajuda.
-                    <br />
-                    Mais tranquilidade<span>.</span>
+                  <h1 ref={detailTitle} tabIndex={-1}>
+                    Central de atendimento
                   </h1>
                   <p>
-                    Do primeiro “o que aconteceu?” até o próximo passo.
-                    <br />
-                    Seu atendimento, com tudo no mesmo lugar.
+                    Abra um atendimento de estorno e acompanhe cada atualização do seu protocolo.
                   </p>
                   <button className={styles.primary} onClick={start} data-refund-tour="welcome">
                     Preciso de ajuda com um estorno <ArrowUpRight size={18} />
@@ -614,46 +663,12 @@ export default function SupportPage() {
                     <div>
                       <Check size={27} />
                     </div>
-                    <small>CADA PASSO, MAIS CLARO.</small>
                   </div>
-                  <span className={styles.artTag}>
-                    <span /> Acompanhe por aqui.
-                  </span>
                 </div>
               </section>
-              <div className={styles.featureGrid}>
-                <button onClick={start}>
-                  <span className={styles.featureIcon}>
-                    <Wallet size={22} />
-                  </span>
-                  <div>
-                    <h2>Precisa de um estorno?</h2>
-                    <p>Escolha a compra e conte o que houve.</p>
-                  </div>
-                  <ArrowUpRight size={19} />
-                </button>
-                <Link href="/chat">
-                  <span className={styles.featureIcon}>
-                    <Headphones size={22} />
-                  </span>
-                  <div>
-                    <h2>Vamos conversar?</h2>
-                    <p>Tire suas dúvidas com o Flashinho.</p>
-                  </div>
-                  <ArrowUpRight size={19} />
-                </Link>
-              </div>
               <section className={styles.casesSection}>
                 <div className={styles.sectionTitle}>
-                  <div>
-                    <span className={styles.eyebrow}>SEM PERDER O FIO</span>
-                    <h2>
-                      Seus atendimentos<span> {data.cases.length.toString().padStart(2, '0')}</span>
-                    </h2>
-                  </div>
-                  <button onClick={start}>
-                    <Plus size={16} /> Novo atendimento
-                  </button>
+                  <h2>Seus atendimentos</h2>
                 </div>
                 {data.cases.length === 0 ? (
                   <div className={styles.empty}>
@@ -661,15 +676,9 @@ export default function SupportPage() {
                       <FileText size={26} />
                     </span>
                     <div>
-                      <h3>Seu próximo passo aparece aqui.</h3>
-                      <p>
-                        Quando você abrir um atendimento, poderá acompanhar cada atualização neste
-                        espaço.
-                      </p>
+                      <h3>Nenhum atendimento aberto</h3>
+                      <p>Seus protocolos vão aparecer aqui assim que você abrir um atendimento.</p>
                     </div>
-                    <button className={styles.secondary} onClick={start}>
-                      Experimentar <ArrowRight size={16} />
-                    </button>
                   </div>
                 ) : (
                   <div className={styles.caseList}>
@@ -702,15 +711,14 @@ export default function SupportPage() {
               </section>
               <div className={styles.bottomNote}>
                 <ShieldCheck size={16} />
-                <p>
-                  Este é um projeto independente. As compras e os atendimentos são demonstrativos e
-                  não se conectam à sua conta Flash.
-                </p>
+                <p>Compras e atendimentos fictícios. Use apenas comprovantes de teste.</p>
               </div>
-            </>
+            </div>
           )}
+          <span className={styles.srOnly} role="status">
+            {pending ? pendingLabels[pending] : ''}
+          </span>
           <footer className={styles.footer}>
-            <span>MENOS DÚVIDAS. MAIS POSSIBILIDADES.</span>
             <span>Projeto conceito independente</span>
           </footer>
         </div>
