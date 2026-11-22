@@ -25,7 +25,7 @@ import {
 import Brand from '@/components/Brand';
 import Flashinho from '@/components/Flashinho';
 import { suggestions, type Answer } from '@/lib/chat';
-import { useReplyReveal } from '@/lib/useReplyReveal';
+import { requestChatReply } from '@/lib/chatReply';
 type Message = Answer & {
   role: 'user' | 'assistant';
   id: string;
@@ -47,9 +47,10 @@ export default function Chat() {
   const scroll = useRef<HTMLDivElement>(null);
   const followsReply = useRef(true);
   const textarea = useRef<HTMLTextAreaElement>(null);
-  const { visibleReply, reveal, finish } = useReplyReveal();
+  const [visibleReply, setVisibleReply] = useState<Message | null>(null);
   const conversation = chats.find((c) => c.id === active);
   const messages = conversation?.messages || [];
+  const displayedMessages = visibleReply ? [...messages, visibleReply] : messages;
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('flash-conversations') || '[]');
@@ -87,7 +88,7 @@ export default function Chat() {
     if (container && followsReply.current) container.scrollTop = container.scrollHeight;
   }, [active, messages.length, busy, visibleReply]);
   function stop() {
-    finish();
+    setVisibleReply(null);
     requestRef.current?.abort();
     requestRef.current = null;
     setBusy(false);
@@ -116,7 +117,6 @@ export default function Chat() {
     if (!text || requestRef.current) {
       return;
     }
-    finish();
     followsReply.current = true;
     const id = active || crypto.randomUUID();
     const message: Message = { role: 'user', text: text.slice(0, 2000), id: crypto.randomUUID() };
@@ -124,6 +124,7 @@ export default function Chat() {
       .slice(-20)
       .map((m) => ({ role: m.role, content: m.text.slice(0, 4000) }));
     const controller = new AbortController();
+    const answerId = crypto.randomUUID();
     requestRef.current = controller;
     setInput('');
     setBusy(true);
@@ -138,23 +139,20 @@ export default function Chat() {
       );
     }
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history }),
-        signal: controller.signal,
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(
-          typeof data.message === 'string'
-            ? data.message
-            : 'Não foi possível responder agora. Tente novamente.',
-        );
-      }
-      if (typeof data.text !== 'string') {
-        throw new Error('A IA retornou uma resposta inválida.');
-      }
+      const data = await requestChatReply(
+        '/api/chat',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: history }),
+          signal: controller.signal,
+        },
+        (partial) => {
+          if (!controller.signal.aborted) {
+            setVisibleReply({ id: answerId, role: 'assistant', text: partial });
+          }
+        },
+      );
       if (controller.signal.aborted) {
         return;
       }
@@ -162,10 +160,9 @@ export default function Chat() {
       const answer: Message = {
         role: 'assistant',
         text: data.text,
-        id: crypto.randomUUID(),
+        id: answerId,
         sources: Array.isArray(data.sources) ? data.sources : [],
       };
-      reveal(answer.id, answer.text);
       setChats((prev) =>
         prev.map((c) => (c.id === id ? { ...c, messages: [...c.messages, answer] } : c)),
       );
@@ -185,6 +182,7 @@ export default function Chat() {
     } finally {
       if (requestRef.current === controller) {
         requestRef.current = null;
+        setVisibleReply(null);
         setBusy(false);
       }
     }
@@ -349,7 +347,7 @@ export default function Chat() {
             </div>
           ) : (
             <div className="messages">
-              {messages.map((m) => (
+              {displayedMessages.map((m) => (
                 <article key={m.id} className={`message ${m.role}`}>
                   <div className="message-avatar">
                     {m.role === 'assistant' ? <Flashinho /> : 'V'}
@@ -392,7 +390,7 @@ export default function Chat() {
                           ]}
                           unwrapDisallowed
                         >
-                          {visibleReply?.id === m.id ? visibleReply.text : m.text}
+                          {m.text}
                         </Markdown>
                       ) : (
                         m.text
@@ -460,7 +458,7 @@ export default function Chat() {
                   </div>
                 </article>
               ))}
-              {busy && (
+              {busy && !visibleReply && (
                 <div className="thinking" role="status">
                   <Flashinho />
                   <span>
@@ -501,11 +499,11 @@ export default function Chat() {
               <span>
                 <Sparkles size={14} /> Flashinho <small>· Guia do universo Flash</small>
               </span>
-              {busy || visibleReply ? (
+              {busy ? (
                 <button
                   type="button"
                   className="send-button"
-                  aria-label={busy ? 'Parar resposta' : 'Mostrar resposta inteira'}
+                  aria-label="Parar resposta"
                   onClick={stop}
                 >
                   <Square size={14} />

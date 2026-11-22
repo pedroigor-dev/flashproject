@@ -59,7 +59,7 @@ async function proxy(request: Request, context: { params: Promise<{ path?: strin
       body = Buffer.concat(chunks);
     }
     const headers = new Headers({ 'x-support-session': session });
-    for (const name of ['content-type', 'idempotency-key']) {
+    for (const name of ['content-type', 'idempotency-key', 'accept']) {
       const value = request.headers.get(name);
       if (value) {
         headers.set(name, value);
@@ -79,8 +79,8 @@ async function proxy(request: Request, context: { params: Promise<{ path?: strin
         ]),
       },
     );
-    const outgoing = new Headers({ 'Cache-Control': 'no-store' });
-    for (const name of ['content-type', 'content-disposition', 'location']) {
+    const outgoing = new Headers({ 'Cache-Control': 'no-store, no-transform' });
+    for (const name of ['content-type', 'content-disposition', 'location', 'x-accel-buffering']) {
       const value = upstream.headers.get(name);
       if (value) {
         outgoing.set(name, value);

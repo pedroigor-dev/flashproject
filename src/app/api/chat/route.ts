@@ -25,16 +25,22 @@ export async function POST(request: Request) {
       `${process.env.FLASH_BACKEND_URL || 'http://127.0.0.1:4000'}/api/chat`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: request.headers.get('accept') ?? 'application/json',
+        },
         body: JSON.stringify(payload),
         signal: AbortSignal.any([request.signal, AbortSignal.timeout(50000)]),
         cache: 'no-store',
       },
     );
-    const data = await upstream.json();
-    return Response.json(data, {
+    return new Response(upstream.body, {
       status: upstream.status,
-      headers: { 'Cache-Control': 'no-store' },
+      headers: {
+        'Content-Type': upstream.headers.get('content-type') ?? 'application/json',
+        'Cache-Control': 'no-store, no-transform',
+        'X-Accel-Buffering': 'no',
+      },
     });
   } catch (error) {
     if (error instanceof SyntaxError) {

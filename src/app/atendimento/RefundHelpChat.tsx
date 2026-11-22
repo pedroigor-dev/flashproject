@@ -4,8 +4,7 @@ import { ArrowUp, X } from 'lucide-react';
 import Markdown from 'react-markdown';
 import messageStyles from '@/components/ChatMessage.module.css';
 import Flashinho from '@/components/Flashinho';
-import { supportRequest } from '@/lib/support';
-import { useReplyReveal } from '@/lib/useReplyReveal';
+import { requestChatReply } from '@/lib/chatReply';
 import styles from './RefundTour.module.css';
 
 type Message = { id: string; role: 'user' | 'assistant'; content: string };
@@ -47,7 +46,8 @@ export default function RefundHelpChat({
   const transcript = useRef<HTMLDivElement>(null);
   const followsReply = useRef(true);
   const request = useRef<AbortController | null>(null);
-  const { visibleReply, reveal, finish } = useReplyReveal();
+  const [visibleReply, setVisibleReply] = useState<Message | null>(null);
+  const displayedMessages = visibleReply ? [...messages, visibleReply] : messages;
 
   useEffect(() => () => request.current?.abort(), []);
 
@@ -55,10 +55,8 @@ export default function RefundHelpChat({
     if (open) {
       followsReply.current = true;
       input.current?.focus({ preventScroll: true });
-    } else {
-      finish();
     }
-  }, [open, finish]);
+  }, [open]);
 
   useEffect(() => {
     const log = transcript.current;
@@ -78,7 +76,6 @@ export default function RefundHelpChat({
     }
 
     if (request.current) return;
-    finish();
     followsReply.current = true;
 
     const history = messages.slice(-12).map(({ role, content }) => ({
@@ -87,6 +84,7 @@ export default function RefundHelpChat({
     }));
     const userMessage = { role: 'user' as const, content: question };
     const pending = new AbortController();
+    const answerId = crypto.randomUUID();
     request.current = pending;
     setMessages([...messages, { ...userMessage, id: crypto.randomUUID() }]);
     setDraft('');
@@ -100,27 +98,25 @@ export default function RefundHelpChat({
     };
 
     try {
-      let result: { text: string };
-      if (caseId) {
-        result = await supportRequest(`/cases/${caseId}/advice`, {
+      const result = await requestChatReply(
+        caseId ? `/api/support/cases/${caseId}/advice` : '/api/chat',
+        {
           ...init,
-          body: JSON.stringify({ question, history }),
-        });
-      } else {
-        const response = await fetch('/api/chat', {
-          ...init,
-          body: JSON.stringify({ messages: [...history, userMessage] }),
-        });
-        if (!response.ok) throw new Error('Não consegui responder agora. Tente novamente.');
-        result = await response.json();
-      }
-      if (typeof result.text !== 'string' || !result.text.trim()) {
-        throw new Error('A resposta veio vazia. Tente novamente.');
-      }
+          body: JSON.stringify(
+            caseId ? { question, history } : { messages: [...history, userMessage] },
+          ),
+        },
+        (content) => {
+          if (!pending.signal.aborted) {
+            setVisibleReply({ id: answerId, role: 'assistant', content });
+          }
+        },
+      );
       if (pending.signal.aborted) return;
-      const id = crypto.randomUUID();
-      if (transcript.current) reveal(id, result.text);
-      setMessages((previous) => [...previous, { id, role: 'assistant', content: result.text }]);
+      setMessages((previous) => [
+        ...previous,
+        { id: answerId, role: 'assistant', content: result.text },
+      ]);
     } catch (failure) {
       if (pending.signal.aborted) return;
       setMessages((previous) => previous.slice(0, -1));
@@ -128,6 +124,7 @@ export default function RefundHelpChat({
       setError(failure instanceof Error ? failure.message : 'Tente enviar a mensagem de novo.');
     } finally {
       if (!pending.signal.aborted) {
+        setVisibleReply(null);
         setSending(false);
         request.current = null;
       }
@@ -162,8 +159,8 @@ export default function RefundHelpChat({
         <div className={styles.bubble}>
           <p>{guidance}</p>
         </div>
-        {messages.map(({ id, role, content }) => {
-          const writing = visibleReply?.id === id ? visibleReply : undefined;
+        {displayedMessages.map(({ id, role, content }) => {
+          const writing = visibleReply?.id === id;
           const bubble = role === 'user' ? styles.userBubble : styles.bubble;
           return (
             <div key={id} className={`${bubble} ${writing ? messageStyles.revealing : ''}`}>
@@ -173,12 +170,12 @@ export default function RefundHelpChat({
                 allowedElements={['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'code']}
                 unwrapDisallowed
               >
-                {writing?.text ?? content}
+                {content}
               </Markdown>
             </div>
           );
         })}
-        {sending && <p className={styles.chatStatus}>Flashinho está pensando…</p>}
+        {sending && !visibleReply && <p className={styles.chatStatus}>Flashinho está pensando…</p>}
         {error && (
           <p className={styles.chatStatus} role="alert">
             {error}
