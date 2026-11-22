@@ -96,7 +96,6 @@
   padding: 5px;
 }
 
-.arrival,
 .departure {
   position: fixed;
   z-index: 22;
@@ -108,13 +107,47 @@
 }
 
 .arrival {
-  animation: arrive 1.1s both ease-out;
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  visibility: visible;
+  animation: arrive 3.6s both;
+}
+
+.arrival .sprite {
+  animation: settle 3.6s both;
+}
+
+.portrait {
+  position: relative;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+}
+
+.arrivingPanel {
+  overflow: visible;
+  animation: showCard 3.6s both;
+}
+
+.arrivingPanel .portrait > .landedMascot {
+  animation: showLandedMascot 3.6s both;
+}
+
+.arrivingPanel .portrait > .landedMascot :global(.pet-body) {
+  animation: none;
+}
+
+.arrivingPanel .portrait .arrival .sprite {
+  width: 100%;
+  height: 100%;
 }
 .departure {
   animation: depart 1.1s both ease-in-out;
 }
 .reveal {
-  animation: reveal 300ms 680ms both;
+  animation: reveal 320ms 3s both;
 }
 .dockLanding {
   animation: reveal 200ms 900ms both;
@@ -160,6 +193,11 @@
   --drift: calc(-16px + 7px * var(--i));
 }
 
+.arrival .feather {
+  background: #ed6298;
+  animation: plume 750ms calc(235ms * var(--i)) both;
+}
+
 @keyframes wing {
   50% {
     opacity: 0;
@@ -186,21 +224,53 @@
     transform: translate(calc(-45px - 6px * var(--i)), var(--drift)) rotate(-36deg);
   }
 }
-@keyframes arrive {
-  from {
-    transform: translate(calc(-100vw - 40px), -52vh) rotate(12deg);
+@keyframes showCard {
+  0%,
+  83.33% {
+    visibility: hidden;
   }
-  52% {
-    transform: translate(-44vw, -61vh) rotate(-9deg);
+  83.34%,
+  100% {
+    visibility: visible;
   }
-  82% {
+}
+
+@keyframes showLandedMascot {
+  0%,
+  68% {
+    visibility: hidden;
+  }
+  68.01%,
+  100% {
+    visibility: visible;
+  }
+}
+
+@keyframes settle {
+  0%,
+  68% {
     opacity: 1;
   }
-  to {
-    transform: translate(-12px, -180px) rotate(8deg) scale(0.75);
+  68.01%,
+  100% {
     opacity: 0;
   }
 }
+
+@keyframes arrive {
+  0% {
+    transform: translate(calc(-100vw - 48px), -14vh) rotate(9deg) scale(1.55);
+  }
+  36% {
+    transform: translate(-43vw, -32vh) rotate(-8deg) scale(1.55);
+    animation-timing-function: ease-out;
+  }
+  68%,
+  100% {
+    transform: translate(0, 0) rotate(0) scale(1);
+  }
+}
+
 @keyframes depart {
   from {
     transform: translate(var(--flight-x, -35vw), var(--flight-y, -30vh)) rotate(-10deg);
@@ -242,9 +312,16 @@
   .departure,
   .reveal,
   .dockLanding,
+  .arrivingPanel,
+  .landedMascot,
   .wingUp,
   .wingDown,
   .feather {
     animation: none;
+  }
+
+  .arrival,
+  .departure {
+    display: none;
   }
 }

@@ -124,7 +124,7 @@ export default function RefundTour({
     if (!flight) {
       return;
     }
-    const timer = window.setTimeout(() => setFlight(null), 1150);
+    const timer = window.setTimeout(() => setFlight(null), flight === 'arrival' ? 3650 : 1150);
     return () => window.clearTimeout(timer);
   }, [flight]);
 
@@ -245,9 +245,7 @@ export default function RefundTour({
 
   return (
     <>
-      {flight && (
-        <Flight phase={flight} origin={flight === 'departure' ? flightOrigin : undefined} />
-      )}
+      {flight === 'departure' && <Flight phase="departure" origin={flightOrigin} />}
       {touring ? (
         <>
           {spot && (
@@ -259,12 +257,15 @@ export default function RefundTour({
           )}
           <aside
             ref={card}
-            className={`${styles.panel} ${isArriving ? styles.reveal : ''}`}
+            className={`${styles.panel} ${isArriving ? styles.arrivingPanel : ''}`}
             style={panelPosition}
             aria-label="Tour do Flashinho"
           >
             <div className={styles.intro} aria-live="polite">
-              <Flashinho />
+              <span className={styles.portrait}>
+                {isArriving && <Flight phase="arrival" />}
+                <Flashinho className={isArriving ? styles.landedMascot : undefined} />
+              </span>
               <div>
                 <small>{current.step}</small>
                 <h2>{current.title}</h2>
@@ -304,6 +305,12 @@ export default function RefundTour({
                 onClick={() => {
                   setHelp(false);
                   setMode('tour');
+                  if (
+                    stage === 'welcome' &&
+                    !matchMedia('(prefers-reduced-motion: reduce)').matches
+                  ) {
+                    setFlight('arrival');
+                  }
                 }}
               >
                 Retomar tour <ArrowRight size={16} />
