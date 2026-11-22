@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { ArrowRight, MessageCircle, X } from 'lucide-react';
+import { ArrowRight, MessageCircle } from 'lucide-react';
 import Flashinho from '@/components/Flashinho';
 import type { CaseStatus } from '@/lib/support';
 import styles from './RefundTour.module.css';
+import RefundHelpChat from './RefundHelpChat';
 
 export type TourStage = 'welcome' | 'purchase' | 'details' | 'tracking';
 
@@ -91,10 +92,14 @@ export default function RefundTour({
   stage,
   status,
   purchaseSelected,
+  caseId,
+  openChatRequest,
 }: {
   stage: TourStage;
   status?: CaseStatus;
   purchaseSelected: boolean;
+  caseId?: string;
+  openChatRequest: number;
 }) {
   const [mode, setMode] = useState<'initial' | 'tour' | 'dock'>('initial');
   const [flight, setFlight] = useState<'arrival' | 'departure' | null>(null);
@@ -103,7 +108,7 @@ export default function RefundTour({
   const [spot, setSpot] = useState<CSSProperties | null>(null);
   const [panelPosition, setPanelPosition] = useState<CSSProperties>();
   const opener = useRef<HTMLButtonElement>(null);
-  const helpClose = useRef<HTMLButtonElement>(null);
+  const handledChatRequest = useRef(0);
   const card = useRef<HTMLElement>(null);
   const shouldFocusDock = useRef(false);
   const current = guide[stage];
@@ -187,10 +192,12 @@ export default function RefundTour({
   }, [stage, touring, purchaseSelected]);
 
   useEffect(() => {
-    if (help) {
-      helpClose.current?.focus();
-    }
-  }, [help]);
+    if (openChatRequest === handledChatRequest.current) return;
+    handledChatRequest.current = openChatRequest;
+    setMode('dock');
+    setFlight(null);
+    setHelp(true);
+  }, [openChatRequest]);
 
   useEffect(() => {
     if (mode === 'dock' && shouldFocusDock.current) {
@@ -245,6 +252,24 @@ export default function RefundTour({
 
   return (
     <>
+      <RefundHelpChat
+        key={caseId ?? 'central'}
+        open={!touring && help}
+        caseId={caseId}
+        label={current.step}
+        guidance={stage === 'tracking' && status ? nextStep[status] : current.text}
+        onClose={() => {
+          setHelp(false);
+          opener.current?.focus();
+        }}
+        onTour={() => {
+          setHelp(false);
+          setMode('tour');
+          if (stage === 'welcome' && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            setFlight('arrival');
+          }
+        }}
+      />
       {flight === 'departure' && <Flight phase="departure" origin={flightOrigin} />}
       {touring ? (
         <>
@@ -280,43 +305,6 @@ export default function RefundTour({
         </>
       ) : (
         <>
-          {help && (
-            <aside
-              id="flashinho-stage-help"
-              className={`${styles.panel} ${styles.help}`}
-              aria-label="Ajuda do Flashinho"
-            >
-              <button
-                ref={helpClose}
-                className={styles.close}
-                aria-label="Fechar ajuda"
-                onClick={() => {
-                  setHelp(false);
-                  opener.current?.focus();
-                }}
-              >
-                <X size={18} />
-              </button>
-              <small>{current.step}</small>
-              <h2>{current.title}</h2>
-              <p>{stage === 'tracking' && status ? nextStep[status] : current.text}</p>
-              <button
-                className={styles.action}
-                onClick={() => {
-                  setHelp(false);
-                  setMode('tour');
-                  if (
-                    stage === 'welcome' &&
-                    !matchMedia('(prefers-reduced-motion: reduce)').matches
-                  ) {
-                    setFlight('arrival');
-                  }
-                }}
-              >
-                Retomar tour <ArrowRight size={16} />
-              </button>
-            </aside>
-          )}
           <button
             ref={opener}
             className={`${styles.dock} ${flight === 'departure' ? styles.dockLanding : ''}`}

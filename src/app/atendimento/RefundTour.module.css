@@ -85,17 +85,6 @@
   height: 28px;
 }
 
-.help {
-  bottom: 4.8rem;
-}
-
-.close {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 5px;
-}
-
 .departure {
   position: fixed;
   z-index: 22;
@@ -324,4 +313,145 @@
   .departure {
     display: none;
   }
+}
+.chatPanel {
+  position: fixed;
+  right: 1rem;
+  bottom: 4.8rem;
+  z-index: 21;
+  display: flex;
+  flex-direction: column;
+  width: min(390px, calc(100vw - 2rem));
+  height: min(465px, calc(100dvh - 6rem));
+  overflow: hidden;
+  border: 1px solid #e9ccda;
+  border-radius: 20px;
+  background: #fff9fc;
+  box-shadow: 0 18px 54px #3d142533;
+}
+
+.chatHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f8eaf1;
+  border-bottom: 1px solid #efdce6;
+  color: var(--wine);
+}
+
+.chatHeader > svg {
+  width: 27px;
+  height: 34px;
+}
+
+.chatHeader h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.chatHeader small {
+  font-size: 11px;
+}
+.chatHeader button {
+  margin-left: auto;
+  padding: 6px;
+  display: grid;
+  place-items: center;
+}
+
+.transcript {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 15px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.bubble,
+.userBubble {
+  width: fit-content;
+  max-width: 94%;
+  border-radius: 13px 13px 13px 4px;
+  background: #f3e8ee;
+  color: #472737;
+  padding: 9px 12px;
+  overflow-wrap: anywhere;
+}
+
+.userBubble {
+  align-self: flex-end;
+  border-radius: 13px 13px 4px 13px;
+  background: var(--wine);
+  color: #fff;
+}
+
+.bubble p,
+.userBubble p {
+  margin: 0;
+}
+.bubble p + p,
+.userBubble p + p {
+  margin-top: 8px;
+}
+.bubble ul,
+.bubble ol {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+.chatStatus {
+  margin: 0;
+  font-size: 12px;
+  color: #844465;
+}
+
+.chatComposer {
+  padding: 11px 14px 14px;
+  border-top: 1px solid #efdce6;
+}
+.chatComposer small {
+  display: block;
+  margin-bottom: 7px;
+  color: #814662;
+  font-size: 11px;
+}
+.chatComposer > div {
+  display: flex;
+  gap: 7px;
+}
+.chatComposer input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #e5c8d6;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+}
+
+.chatComposer button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  border-radius: 10px;
+  background: var(--wine);
+  color: #fff;
+}
+
+.chatComposer button:disabled {
+  opacity: 0.45;
+}
+.chatSrOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

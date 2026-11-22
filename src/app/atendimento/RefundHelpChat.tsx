@@ -1,0 +1,183 @@
+import { useEffect, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
+import { ArrowUp, X } from 'lucide-react';
+import Markdown from 'react-markdown';
+import Flashinho from '@/components/Flashinho';
+import { supportRequest } from '@/lib/support';
+import styles from './RefundTour.module.css';
+
+type Message = { role: 'user' | 'assistant'; content: string };
+
+function requestsTour(message: string) {
+  const normalized = message
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+  const cleaned = normalized
+    .replace(/[.!?,]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return /^(?:(?:oi|ola|flashinho) )*(?:(?:eu )?quero (?:ver |fazer |retomar |ativar |comecar )?|(?:pode |poderia )?(?:me )?(?:ativar|iniciar|retomar|mostrar|comecar|abre|abra|ativa|ative|mostra|mostre|retoma|reiniciar|recomecar) |(?:me )?guia (?:pelo )?)?(?:um |o |seu |esse )?(?:tour|tutorial|passo a passo)(?: (?:por favor|de novo|novamente|daqui|para mim))*$/.test(
+    cleaned,
+  );
+}
+
+export default function RefundHelpChat({
+  open,
+  caseId,
+  label,
+  guidance,
+  onClose,
+  onTour,
+}: {
+  open: boolean;
+  caseId?: string;
+  label: string;
+  guidance: string;
+  onClose: () => void;
+  onTour: () => void;
+}) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [draft, setDraft] = useState('');
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+  const input = useRef<HTMLInputElement>(null);
+  const transcript = useRef<HTMLDivElement>(null);
+  const request = useRef<AbortController | null>(null);
+
+  useEffect(() => () => request.current?.abort(), []);
+
+  useEffect(() => {
+    if (open) input.current?.focus({ preventScroll: true });
+  }, [open]);
+
+  useEffect(() => {
+    const log = transcript.current;
+    if (log) log.scrollTop = log.scrollHeight;
+  }, [open, messages, sending, error]);
+
+  async function send(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const question = draft.trim();
+    if (!question) return;
+
+    if (requestsTour(question)) {
+      setDraft('');
+      setError('');
+      onTour();
+      return;
+    }
+
+    if (request.current) return;
+
+    const history = messages.slice(-12).map((message) => ({
+      ...message,
+      content: message.content.slice(0, 4000),
+    }));
+    const userMessage: Message = { role: 'user', content: question };
+    const pending = new AbortController();
+    request.current = pending;
+    setMessages([...messages, userMessage]);
+    setDraft('');
+    setError('');
+    setSending(true);
+
+    const init = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: pending.signal,
+    };
+
+    try {
+      let result: { text: string };
+      if (caseId) {
+        result = await supportRequest(`/cases/${caseId}/advice`, {
+          ...init,
+          body: JSON.stringify({ question, history }),
+        });
+      } else {
+        const response = await fetch('/api/chat', {
+          ...init,
+          body: JSON.stringify({ messages: [...history, userMessage] }),
+        });
+        if (!response.ok) throw new Error('Não consegui responder agora. Tente novamente.');
+        result = await response.json();
+      }
+      if (typeof result.text !== 'string' || !result.text.trim()) {
+        throw new Error('A resposta veio vazia. Tente novamente.');
+      }
+      setMessages((previous) => [...previous, { role: 'assistant', content: result.text }]);
+    } catch (failure) {
+      if (pending.signal.aborted) return;
+      setMessages((previous) => previous.slice(0, -1));
+      setDraft((current) => current || question);
+      setError(failure instanceof Error ? failure.message : 'Tente enviar a mensagem de novo.');
+    } finally {
+      if (!pending.signal.aborted) {
+        setSending(false);
+        request.current = null;
+      }
+    }
+  }
+
+  if (!open) return null;
+
+  return (
+    <aside id="flashinho-stage-help" className={styles.chatPanel} aria-label="Chat do Flashinho">
+      <header className={styles.chatHeader}>
+        <Flashinho />
+        <div>
+          <h2>Flashinho</h2>
+          <small>{label}</small>
+        </div>
+        <button type="button" aria-label="Fechar ajuda" onClick={onClose}>
+          <X size={19} />
+        </button>
+      </header>
+      <div ref={transcript} className={styles.transcript} role="log" aria-label="Mensagens do chat">
+        <div className={styles.bubble}>
+          <p>{guidance}</p>
+        </div>
+        {messages.map(({ role, content }, index) => (
+          <div key={index} className={role === 'user' ? styles.userBubble : styles.bubble}>
+            <span className={styles.chatSrOnly}>{role === 'user' ? 'Você' : 'Flashinho'}</span>
+            <Markdown
+              skipHtml
+              allowedElements={['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'code']}
+              unwrapDisallowed
+            >
+              {content}
+            </Markdown>
+          </div>
+        ))}
+        {sending && <p className={styles.chatStatus}>Flashinho está pensando…</p>}
+        {error && (
+          <p className={styles.chatStatus} role="alert">
+            {error}
+          </p>
+        )}
+      </div>
+      <form className={styles.chatComposer} onSubmit={send}>
+        <small id="flashinho-chat-hint">Digite “quero o tour” para abrir o guia.</small>
+        <div>
+          <input
+            ref={input}
+            aria-label="Mensagem para o Flashinho"
+            aria-describedby="flashinho-chat-hint"
+            placeholder="Escreva sua mensagem"
+            maxLength={1000}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+          />
+          <button
+            type="submit"
+            aria-label="Enviar mensagem"
+            disabled={!draft.trim() || (sending && !requestsTour(draft))}
+          >
+            <ArrowUp size={18} />
+          </button>
+        </div>
+      </form>
+    </aside>
+  );
+}

@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Markdown from 'react-markdown';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowUpRight,
@@ -46,11 +45,7 @@ export default function SupportPage() {
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [advice, setAdvice] = useState<{ caseId: string; status: string; text: string } | null>(
-    null,
-  );
-  const [question, setQuestion] = useState('');
-  const [thinking, setThinking] = useState(false);
+  const [openChatRequest, setOpenChatRequest] = useState(0);
   const requestKey = useRef('');
   const fileInput = useRef<HTMLInputElement>(null);
   const detailTitle = useRef<HTMLHeadingElement>(null);
@@ -85,8 +80,6 @@ export default function SupportPage() {
   }, []);
 
   useEffect(() => {
-    setAdvice(null);
-    setQuestion('');
     if (selected || creating) {
       detailTitle.current?.focus();
     }
@@ -138,30 +131,6 @@ export default function SupportPage() {
     await mutate(() => supportRequest(`/cases/${active.id}/attachments`, { method: 'POST', body }));
     if (fileInput.current) {
       fileInput.current.value = '';
-    }
-  }
-
-  async function ask(event: React.FormEvent) {
-    event.preventDefault();
-    if (!active || !question.trim() || thinking) {
-      return;
-    }
-    const caseId = active.id;
-    setThinking(true);
-    setError('');
-    try {
-      const result = await supportRequest<{ text: string }>(`/cases/${caseId}/advice`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: question.trim() }),
-      });
-      setAdvice({ caseId, status: active.status, text: result.text });
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : 'O Flashinho não conseguiu responder agora.',
-      );
-    } finally {
-      setThinking(false);
     }
   }
 
@@ -434,7 +403,6 @@ export default function SupportPage() {
                 className={styles.back}
                 onClick={() => {
                   setSelected(null);
-                  setAdvice(null);
                 }}
               >
                 <ArrowLeft size={15} /> Meus atendimentos
@@ -598,38 +566,12 @@ export default function SupportPage() {
                       O Flashinho pode explicar as etapas e orientar seu próximo passo, considerando
                       este atendimento.
                     </p>
-                    <form onSubmit={ask}>
-                      <label htmlFor="case-question">O que você quer entender?</label>
-                      <textarea
-                        id="case-question"
-                        value={question}
-                        onChange={(event) => setQuestion(event.target.value)}
-                        maxLength={1000}
-                        placeholder="Por que preciso falar com a loja?"
-                        required
-                      />
-                      <button className={styles.secondary} disabled={thinking}>
-                        {thinking ? (
-                          <>
-                            <LoaderCircle className={styles.spin} size={16} /> Consultando…
-                          </>
-                        ) : (
-                          <>
-                            Perguntar ao Flashinho <ArrowUpRight size={15} />
-                          </>
-                        )}
-                      </button>
-                    </form>
-                    {advice && advice.caseId === active.id && advice.status === active.status && (
-                      <div className={styles.advice} role="status">
-                        <Markdown
-                          skipHtml
-                          allowedElements={['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'code']}
-                        >
-                          {advice.text}
-                        </Markdown>
-                      </div>
-                    )}
+                    <button
+                      className={styles.secondary}
+                      onClick={() => setOpenChatRequest((value) => value + 1)}
+                    >
+                      Perguntar ao Flashinho <ArrowUpRight size={15} />
+                    </button>
                   </div>
                   <div className={styles.sourceCard}>
                     <FileText size={19} />
@@ -777,6 +719,8 @@ export default function SupportPage() {
         <RefundTour
           stage={creating ? (step === 1 ? 'purchase' : 'details') : active ? 'tracking' : 'welcome'}
           status={active?.status}
+          caseId={active?.id}
+          openChatRequest={openChatRequest}
           purchaseSelected={Boolean(transactionId)}
         />
       )}
