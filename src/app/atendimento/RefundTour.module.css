@@ -1,0 +1,250 @@
+.spotlight {
+  position: fixed;
+  z-index: 20;
+  pointer-events: none;
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 2px #ff90b7,
+    0 0 24px 4px #f88bb67a,
+    0 0 0 150vmax #21111cc9;
+}
+
+.panel {
+  position: fixed;
+  z-index: 21;
+  right: 1rem;
+  bottom: 1rem;
+  width: min(340px, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid #efcede;
+  border-radius: 16px;
+  background: #fff9fc;
+  box-shadow: 0 12px 36px #3d142533;
+  color: var(--ink);
+}
+
+.intro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.intro svg {
+  width: 39px;
+  height: 45px;
+}
+
+.panel small {
+  display: block;
+  color: #8d4061;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.panel h2 {
+  margin: 3px 0 0;
+  font-size: 19px;
+  line-height: 1.25;
+}
+
+.panel p {
+  margin: 10px 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.action,
+.dock {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  background: var(--wine);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dock {
+  position: fixed;
+  z-index: 21;
+  right: 1rem;
+  bottom: 1rem;
+  border: 1px solid #e4c6d5;
+  border-radius: 30px;
+  background: #fff8fb;
+  color: var(--wine);
+  box-shadow: 0 6px 24px #4e153326;
+}
+
+.dock svg:first-child {
+  width: 23px;
+  height: 28px;
+}
+
+.help {
+  bottom: 4.8rem;
+}
+
+.close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 5px;
+}
+
+.arrival,
+.departure {
+  position: fixed;
+  z-index: 22;
+  right: 1rem;
+  bottom: 1rem;
+  width: 76px;
+  height: 76px;
+  pointer-events: none;
+}
+
+.arrival {
+  animation: arrive 1.1s both ease-out;
+}
+.departure {
+  animation: depart 1.1s both ease-in-out;
+}
+.reveal {
+  animation: reveal 300ms 680ms both;
+}
+.dockLanding {
+  animation: reveal 200ms 900ms both;
+}
+
+.sprite {
+  width: 100%;
+  height: 100%;
+}
+.wingUp {
+  animation: wing 180ms steps(1) infinite;
+}
+.wingDown {
+  animation: wing 180ms 90ms steps(1) infinite;
+}
+
+.feather {
+  position: absolute;
+  top: 52%;
+  left: 12%;
+  width: 16px;
+  height: 12px;
+  background: #f59abb;
+  clip-path: polygon(
+    0 75%,
+    25% 75%,
+    25% 50%,
+    38% 50%,
+    38% 25%,
+    62% 25%,
+    62% 0,
+    100% 0,
+    100% 38%,
+    87% 38%,
+    87% 62%,
+    65% 62%,
+    65% 80%,
+    38% 80%,
+    38% 100%,
+    0 100%
+  );
+  animation: plume 550ms calc(50ms * var(--i)) both;
+  --drift: calc(-16px + 7px * var(--i));
+}
+
+@keyframes wing {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes plume {
+  from {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  20% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translate(calc(-45px - 6px * var(--i)), var(--drift)) rotate(-36deg);
+  }
+}
+@keyframes arrive {
+  from {
+    transform: translate(calc(-100vw - 40px), -52vh) rotate(12deg);
+  }
+  52% {
+    transform: translate(-44vw, -61vh) rotate(-9deg);
+  }
+  82% {
+    opacity: 1;
+  }
+  to {
+    transform: translate(-12px, -180px) rotate(8deg) scale(0.75);
+    opacity: 0;
+  }
+}
+@keyframes depart {
+  from {
+    transform: translate(var(--flight-x, -35vw), var(--flight-y, -30vh)) rotate(-10deg);
+  }
+  45% {
+    transform: translate(
+        calc(var(--flight-x, -35vw) * 0.45),
+        calc(var(--flight-y, -30vh) * 0.45 - 84px)
+      )
+      rotate(-8deg);
+  }
+  82% {
+    opacity: 1;
+  }
+  to {
+    transform: translate(6px, 14px) rotate(12deg) scale(0.36);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .panel {
+    padding: 13px;
+    width: calc(100vw - 2rem);
+  }
+  .panel p {
+    font-size: 12px;
+  }
+  .dock span {
+    display: none;
+  }
+  .dock {
+    padding: 8px 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrival,
+  .departure,
+  .reveal,
+  .dockLanding,
+  .wingUp,
+  .wingDown,
+  .feather {
+    animation: none;
+  }
+}

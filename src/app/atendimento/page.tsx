@@ -33,6 +33,7 @@ import {
   supportRequest,
 } from '@/lib/support';
 import styles from './support.module.css';
+import RefundTour from './RefundTour';
 
 export default function SupportPage() {
   const [data, setData] = useState<Dashboard | null>(null);
@@ -289,7 +290,10 @@ export default function SupportPage() {
                 <div className={styles.formCard}>
                   <h2>Qual compra precisa de ajuda?</h2>
                   <p>Estas transações são exemplos para você testar o fluxo.</p>
-                  <div className={styles.purchaseList}>
+                  <div
+                    className={styles.purchaseList}
+                    data-refund-tour={transactionId ? undefined : 'purchase'}
+                  >
                     {data.transactions.map((tx) => {
                       const existing = data.cases.find((item) => item.transactionId === tx.id);
                       return (
@@ -328,6 +332,7 @@ export default function SupportPage() {
                     </span>
                     <button
                       className={styles.primary}
+                      data-refund-tour={transactionId ? 'purchase' : undefined}
                       disabled={!transactionId}
                       onClick={() => setStep(2)}
                     >
@@ -338,6 +343,7 @@ export default function SupportPage() {
               ) : (
                 <form
                   className={styles.formCard}
+                  data-refund-tour="details"
                   onSubmit={(event) => {
                     event.preventDefault();
                     void mutate(() =>
@@ -463,7 +469,7 @@ export default function SupportPage() {
                     <strong>{money(active.transaction.amount)}</strong>
                   </div>
                   <div className={styles.timelineCard}>
-                    <div className={styles.cardHeading}>
+                    <div className={styles.cardHeading} data-refund-tour="tracking">
                       <h2>O caminho do seu estorno</h2>
                       <span>ATUALIZADO {shortDate(active.updatedAt)}</span>
                     </div>
@@ -654,7 +660,7 @@ export default function SupportPage() {
                     <br />
                     Seu atendimento, com tudo no mesmo lugar.
                   </p>
-                  <button className={styles.primary} onClick={start}>
+                  <button className={styles.primary} onClick={start} data-refund-tour="welcome">
                     Preciso de ajuda com um estorno <ArrowUpRight size={18} />
                   </button>
                 </div>
@@ -767,6 +773,13 @@ export default function SupportPage() {
           </footer>
         </div>
       </div>
+      {data && (
+        <RefundTour
+          stage={creating ? (step === 1 ? 'purchase' : 'details') : active ? 'tracking' : 'welcome'}
+          status={active?.status}
+          purchaseSelected={Boolean(transactionId)}
+        />
+      )}
     </main>
   );
 }
