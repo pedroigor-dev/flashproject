@@ -79,3 +79,14 @@
 .markdown blockquote:empty {
   display: none;
 }
+
+.revealing > :is(p, h1, h2, h3):last-child::after {
+  content: '';
+  display: inline-block;
+  vertical-align: -0.06em;
+  width: 0.14em;
+  height: 0.85em;
+  margin-left: 0.1em;
+  border-radius: 1px;
+  background: #cf3974;
+}

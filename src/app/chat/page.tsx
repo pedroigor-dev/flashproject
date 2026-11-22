@@ -25,6 +25,7 @@ import {
 import Brand from '@/components/Brand';
 import Flashinho from '@/components/Flashinho';
 import { suggestions, type Answer } from '@/lib/chat';
+import { useReplyReveal } from '@/lib/useReplyReveal';
 type Message = Answer & {
   role: 'user' | 'assistant';
   id: string;
@@ -43,8 +44,10 @@ export default function Chat() {
   const [ready, setReady] = useState(false);
   const [aiStatus, setAiStatus] = useState('Conectando à IA');
   const requestRef = useRef<AbortController | null>(null);
-  const bottom = useRef<HTMLDivElement>(null);
+  const scroll = useRef<HTMLDivElement>(null);
+  const followsReply = useRef(true);
   const textarea = useRef<HTMLTextAreaElement>(null);
+  const { visibleReply, reveal, finish } = useReplyReveal();
   const conversation = chats.find((c) => c.id === active);
   const messages = conversation?.messages || [];
   useEffect(() => {
@@ -80,11 +83,11 @@ export default function Chat() {
     }
   }, [chats, ready]);
   useEffect(() => {
-    bottom.current?.scrollIntoView({
-      behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
-    });
-  }, [messages.length, busy]);
+    const container = scroll.current;
+    if (container && followsReply.current) container.scrollTop = container.scrollHeight;
+  }, [active, messages.length, busy, visibleReply]);
   function stop() {
+    finish();
     requestRef.current?.abort();
     requestRef.current = null;
     setBusy(false);
@@ -113,6 +116,8 @@ export default function Chat() {
     if (!text || requestRef.current) {
       return;
     }
+    finish();
+    followsReply.current = true;
     const id = active || crypto.randomUUID();
     const message: Message = { role: 'user', text: text.slice(0, 2000), id: crypto.randomUUID() };
     const history = [...messages.filter((m) => !m.error), message]
@@ -160,6 +165,7 @@ export default function Chat() {
         id: crypto.randomUUID(),
         sources: Array.isArray(data.sources) ? data.sources : [],
       };
+      reveal(answer.id, answer.text);
       setChats((prev) =>
         prev.map((c) => (c.id === id ? { ...c, messages: [...c.messages, answer] } : c)),
       );
@@ -241,6 +247,7 @@ export default function Chat() {
                 <button
                   onClick={() => {
                     stop();
+                    followsReply.current = true;
                     setActive(c.id);
                     setSidebar(false);
                   }}
@@ -302,7 +309,15 @@ export default function Chat() {
             <span /> {aiStatus}
           </span>
         </header>
-        <div className={`chat-scroll ${messages.length ? 'has-messages' : ''}`}>
+        <div
+          ref={scroll}
+          className={`chat-scroll ${messages.length ? 'has-messages' : ''}`}
+          onScroll={({ currentTarget }) => {
+            followsReply.current =
+              currentTarget.scrollHeight - currentTarget.clientHeight - currentTarget.scrollTop <
+              80;
+          }}
+        >
           {!messages.length ? (
             <div className="chat-welcome">
               <div className="welcome-pet">
@@ -345,8 +360,9 @@ export default function Chat() {
                       {m.role === 'assistant' && <span>GUIA FLASH</span>}
                     </div>
                     <div
-                      className={`message-text ${m.role === 'assistant' && !m.error ? messageStyles.markdown : ''}`}
+                      className={`message-text ${m.role === 'assistant' && !m.error ? messageStyles.markdown : ''} ${visibleReply?.id === m.id ? messageStyles.revealing : ''}`}
                       role={m.error ? 'alert' : undefined}
+                      aria-busy={visibleReply?.id === m.id || undefined}
                     >
                       {m.role === 'assistant' && !m.error ? (
                         <Markdown
@@ -376,7 +392,7 @@ export default function Chat() {
                           ]}
                           unwrapDisallowed
                         >
-                          {m.text}
+                          {visibleReply?.id === m.id ? visibleReply.text : m.text}
                         </Markdown>
                       ) : (
                         m.text
@@ -402,7 +418,7 @@ export default function Chat() {
                         Tentar novamente
                       </button>
                     )}
-                    {!!m.sources?.length && (
+                    {visibleReply?.id !== m.id && !!m.sources?.length && (
                       <div>
                         <small>Fontes da resposta</small>
                         <div className={messageStyles.references}>
@@ -431,7 +447,7 @@ export default function Chat() {
                         {m.label} <ArrowUpRight size={12} />
                       </a>
                     )}
-                    {m.role === 'assistant' && (
+                    {m.role === 'assistant' && visibleReply?.id !== m.id && (
                       <button
                         className="copy-button"
                         onClick={() => copy(m)}
@@ -455,7 +471,6 @@ export default function Chat() {
                   </span>
                 </div>
               )}
-              <div ref={bottom} />
             </div>
           )}
         </div>
@@ -486,11 +501,11 @@ export default function Chat() {
               <span>
                 <Sparkles size={14} /> Flashinho <small>· Guia do universo Flash</small>
               </span>
-              {busy ? (
+              {busy || visibleReply ? (
                 <button
                   type="button"
                   className="send-button"
-                  aria-label="Parar resposta"
+                  aria-label={busy ? 'Parar resposta' : 'Mostrar resposta inteira'}
                   onClick={stop}
                 >
                   <Square size={14} />
